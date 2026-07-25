@@ -1,15 +1,15 @@
+import { exerciseImages } from './exerciseImages';
+
 export type ExerciseType = 'multiple-choice' | 'image-choice' | 'fill-blank' | 'word-order' | 'translate' | 'speaking';
 export type Level = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
 /**
- * Imagen de un ejercicio. `alt` es obligatorio y es la ÚNICA vía por la que una
- * persona ciega recibe el contenido del dibujo, así que describe el objeto en
- * español con el mismo detalle con el que se ve (WCAG 1.1.1).
+ * Imagen de un ejercicio. Vive en `exerciseImages.ts`, que guarda para cada
+ * concepto la fotografía de Unsplash y el dibujo de respaldo, cada una con su
+ * `alt` obligatorio: ese texto es la ÚNICA vía por la que una persona ciega
+ * recibe el contenido de la imagen (WCAG 1.1.1).
  */
-export interface ExerciseImage {
-  src: string;
-  alt: string;
-}
+export type { ExerciseImage } from './exerciseImages';
 
 export interface ExerciseItem {
   id: string;
@@ -303,10 +303,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el animal de la imagen?',
-            image: {
-              src: '/images/exercises/dog.svg',
-              alt: 'Dibujo de un perro marrón con las orejas caídas, visto de frente',
-            },
+            image: exerciseImages.dog,
             options: ['dog', 'cat', 'bird', 'horse'],
             correctAnswer: 'dog',
             explanation: '"Dog" = perro. "Cat" = gato, "Bird" = pájaro, "Horse" = caballo.',
@@ -316,10 +313,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el animal de la imagen?',
-            image: {
-              src: '/images/exercises/cat.svg',
-              alt: 'Dibujo de un gato naranja con orejas puntiagudas y bigotes',
-            },
+            image: exerciseImages.cat,
             options: ['cat', 'dog', 'mouse', 'rabbit'],
             correctAnswer: 'cat',
             explanation: '"Cat" = gato. "Mouse" = ratón, "Rabbit" = conejo. El plural irregular de "mouse" es "mice".',
@@ -329,10 +323,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el objeto de la imagen?',
-            image: {
-              src: '/images/exercises/house.svg',
-              alt: 'Dibujo de una casa amarilla con tejado rojo, una puerta y dos ventanas',
-            },
+            image: exerciseImages.house,
             options: ['house', 'school', 'shop', 'church'],
             correctAnswer: 'house',
             explanation: '"House" = casa (el edificio). "Home" = hogar. "School" = escuela, "Shop" = tienda.',
@@ -342,10 +333,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el objeto de la imagen?',
-            image: {
-              src: '/images/exercises/book.svg',
-              alt: 'Dibujo de un libro abierto con dos páginas y líneas de texto',
-            },
+            image: exerciseImages.book,
             options: ['book', 'notebook', 'newspaper', 'letter'],
             correctAnswer: 'book',
             explanation: '"Book" = libro. "Notebook" = cuaderno, "Newspaper" = periódico, "Letter" = carta.',
@@ -355,10 +343,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés lo que aparece en la imagen?',
-            image: {
-              src: '/images/exercises/sun.svg',
-              alt: 'Dibujo del sol, un círculo amarillo con rayos alrededor',
-            },
+            image: exerciseImages.sun,
             options: ['sun', 'moon', 'star', 'cloud'],
             correctAnswer: 'sun',
             explanation: '"Sun" = sol. "Moon" = luna, "Star" = estrella, "Cloud" = nube. Se dice "It\'s sunny" = está soleado.',
@@ -368,10 +353,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés lo que aparece en la imagen?',
-            image: {
-              src: '/images/exercises/tree.svg',
-              alt: 'Dibujo de un árbol con tronco marrón y copa verde sobre la hierba',
-            },
+            image: exerciseImages.tree,
             options: ['tree', 'flower', 'grass', 'leaf'],
             correctAnswer: 'tree',
             explanation: '"Tree" = árbol. "Flower" = flor, "Grass" = hierba, "Leaf" = hoja (plural irregular: "leaves").',
@@ -559,10 +541,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés la fruta de la imagen?',
-            image: {
-              src: '/images/exercises/apple.svg',
-              alt: 'Dibujo de una manzana roja con una hoja verde y el rabito marrón',
-            },
+            image: exerciseImages.apple,
             options: ['apple', 'tomato', 'cherry', 'strawberry'],
             correctAnswer: 'apple',
             explanation: '"Apple" = manzana. "Tomato" = tomate, "Cherry" = cereza, "Strawberry" = fresa.',
@@ -572,10 +551,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el alimento de la imagen?',
-            image: {
-              src: '/images/exercises/bread.svg',
-              alt: 'Dibujo de una barra de pan dorada con tres cortes en la corteza',
-            },
+            image: exerciseImages.bread,
             options: ['bread', 'cake', 'cheese', 'rice'],
             correctAnswer: 'bread',
             explanation: '"Bread" = pan. Es incontable: se dice "some bread" o "a loaf of bread", nunca "a bread".',
@@ -653,10 +629,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el vehículo de la imagen?',
-            image: {
-              src: '/images/exercises/car.svg',
-              alt: 'Dibujo de un coche rojo de perfil, con dos ventanillas y dos ruedas',
-            },
+            image: exerciseImages.car,
             options: ['car', 'bus', 'truck', 'motorbike'],
             correctAnswer: 'car',
             explanation: '"Car" = coche/carro. "Truck" = camión, "Motorbike" = moto. Se viaja "by car" (en coche).',
@@ -666,10 +639,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el vehículo de la imagen?',
-            image: {
-              src: '/images/exercises/bus.svg',
-              alt: 'Dibujo de un autobús naranja de perfil, con tres ventanillas grandes',
-            },
+            image: exerciseImages.bus,
             options: ['bus', 'van', 'taxi', 'train'],
             correctAnswer: 'bus',
             explanation: '"Bus" = autobús. "Van" = furgoneta, "Taxi" = taxi. "I take the bus" = cojo el autobús.',
@@ -679,10 +649,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el vehículo de la imagen?',
-            image: {
-              src: '/images/exercises/bicycle.svg',
-              alt: 'Dibujo de una bicicleta azul de perfil, con dos ruedas y manillar',
-            },
+            image: exerciseImages.bicycle,
             options: ['bicycle', 'motorbike', 'scooter', 'wheelchair'],
             correctAnswer: 'bicycle',
             explanation: '"Bicycle" (o "bike") = bicicleta. "Scooter" = patinete, "Motorbike" = motocicleta.',
@@ -692,10 +659,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el vehículo de la imagen?',
-            image: {
-              src: '/images/exercises/train.svg',
-              alt: 'Dibujo de un tren azul sobre las vías, con chimenea y tres ruedas',
-            },
+            image: exerciseImages.train,
             options: ['train', 'bus', 'plane', 'boat'],
             correctAnswer: 'train',
             explanation: '"Train" = tren. Se coge "at the station" (en la estación) y se viaja "by train".',
@@ -705,10 +669,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el vehículo de la imagen?',
-            image: {
-              src: '/images/exercises/airplane.svg',
-              alt: 'Dibujo de un avión azul volando, visto desde un lado',
-            },
+            image: exerciseImages.airplane,
             options: ['plane', 'helicopter', 'rocket', 'bird'],
             correctAnswer: 'plane',
             explanation: '"Plane" (o "airplane" / "aeroplane") = avión. El aeropuerto es "airport" y el vuelo, "flight".',
@@ -718,10 +679,7 @@ export const units: Unit[] = [
             type: 'image-choice',
             instruction: 'Observa la imagen y elige cómo se dice en inglés',
             question: '¿Cómo se dice en inglés el vehículo de la imagen?',
-            image: {
-              src: '/images/exercises/boat.svg',
-              alt: 'Dibujo de un barco de vela sobre el agua, con una vela blanca y otra roja',
-            },
+            image: exerciseImages.boat,
             options: ['boat', 'car', 'plane', 'bridge'],
             correctAnswer: 'boat',
             explanation: '"Boat" = barco/barca. Un barco grande es "ship". "Bridge" = puente.',
