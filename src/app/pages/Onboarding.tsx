@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Zap, Star, MessageSquare, BarChart2, CheckCircle2 } from 'lucide-react';
@@ -64,6 +64,40 @@ const slides = [
   },
 ];
 
+/**
+ * Tarjeta de diapositiva. Se enfoca al montarse (cada paso la remonta), así el
+ * lector de pantalla lee el paso nuevo completo: número de paso, título,
+ * descripción y ventajas. Sin esto, al pulsar "Siguiente" el foco se quedaba en
+ * el botón y el contenido nuevo pasaba desapercibido.
+ */
+function OnboardingSlide({
+  label,
+  className,
+  children,
+}: Readonly<{ label: string; className: string; children: React.ReactNode }>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+
+  return (
+    <motion.div
+      ref={ref}
+      tabIndex={-1}
+      initial={{ opacity: 0, x: 30 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -30 }}
+      transition={{ duration: 0.25 }}
+      className={className}
+      role="group"
+      aria-roledescription="diapositiva"
+      aria-label={label}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export function Onboarding() {
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
@@ -99,16 +133,10 @@ export function Onboarding() {
       <div className="w-full max-w-sm">
         {/* Card */}
         <AnimatePresence mode="wait">
-          <motion.div
+          <OnboardingSlide
             key={current}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.25 }}
-            className="bg-white rounded-3xl shadow-xl overflow-hidden mb-6"
-            role="group"
-            aria-roledescription="diapositiva"
-            aria-label={`Paso ${current + 1} de ${slides.length}: ${slide.title}`}
+            className="bg-white rounded-3xl shadow-xl overflow-hidden mb-6 outline-none"
+            label={`Paso ${current + 1} de ${slides.length}: ${slide.title}. ${slide.description} ${slide.features.map(f => f.text).join('. ')}.`}
           >
             {/* Gradient top */}
             <div className={`bg-gradient-to-br ${slide.color} p-8 flex flex-col items-center text-center`}>
@@ -118,31 +146,31 @@ export function Onboarding() {
             </div>
 
             {/* Features */}
-            <div className="p-6 space-y-3">
+            <ul className="p-6 space-y-3 list-none m-0">
               {slide.features.map((f) => (
-                <div key={f.text} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                  <div className="text-indigo-500 flex-shrink-0" aria-hidden="true">{f.icon}</div>
+                <li key={f.text} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                  <span className="text-indigo-500 flex-shrink-0" aria-hidden="true">{f.icon}</span>
                   <span className="text-slate-700" style={{ fontSize: '0.85rem', fontWeight: 500 }}>{f.text}</span>
-                </div>
+                </li>
               ))}
-            </div>
-          </motion.div>
+            </ul>
+          </OnboardingSlide>
         </AnimatePresence>
 
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-6" role="tablist" aria-label="Progreso de bienvenida">
+        {/* Progress dots — botones simples con aria-current; no son pestañas
+            reales (no hay paneles asociados), así que no usan role="tab". */}
+        <div className="flex justify-center gap-2 mb-6" role="group" aria-label="Ir a un paso de la bienvenida">
           {slides.map((s, i) => (
             <button
               key={s.title}
               onClick={() => setCurrent(i)}
-              role="tab"
-              aria-selected={i === current}
               aria-current={i === current ? 'step' : undefined}
-              aria-label={`Ir al paso ${i + 1} de ${slides.length}: ${s.title}`}
+              aria-label={`Ir al paso ${i + 1} de ${slides.length}: ${s.title}${i === current ? '. Paso actual' : ''}`}
               className="p-2 flex items-center justify-center"
             >
-              <div
-                className={`rounded-full transition-all duration-300 ${
+              <span
+                aria-hidden="true"
+                className={`block rounded-full transition-all duration-300 ${
                   i === current ? 'w-6 h-2.5 bg-indigo-500' : 'w-2.5 h-2.5 bg-slate-400'
                 }`}
               />
@@ -158,7 +186,7 @@ export function Onboarding() {
               className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl py-3.5 flex items-center justify-center gap-2 transition-colors"
               style={{ fontWeight: 600 }}
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5" aria-hidden="true" />
               Atrás
             </button>
           )}
@@ -168,7 +196,8 @@ export function Onboarding() {
             style={{ fontWeight: 600 }}
           >
             {isLast ? '¡Comenzar!' : 'Siguiente'}
-            <ChevronRight className="w-5 h-5" />
+            <span className="sr-only">{isLast ? ' Ir al inicio de la aplicación' : ` Paso ${current + 2} de ${slides.length}`}</span>
+            <ChevronRight className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </div>

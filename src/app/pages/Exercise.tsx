@@ -1,11 +1,49 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Pause, CheckCircle2, XCircle, Lightbulb, ChevronRight, Volume2, Mic } from 'lucide-react';
+import { X, Pause, CheckCircle2, XCircle, Lightbulb, ChevronRight, Volume2, Mic, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getLessonById, type ExerciseItem } from '../data/lessons';
+import { getLessonById, type ExerciseItem, type ExerciseType } from '../data/lessons';
 import { PauseModal } from '../components/PauseModal';
 import { usePageTitle } from '../hooks/usePageTitle';
+
+// ─────────────────────────────────────────────
+// Identificadores del enunciado.
+//
+// Solo hay un ejercicio en pantalla a la vez (AnimatePresence mode="wait"), así
+// que los ids pueden ser constantes. Se usan para dos cosas:
+//   1. `aria-labelledby` del grupo que recibe el foco al cambiar de ejercicio:
+//      el lector de pantalla lee tipo + instrucción + imagen + pregunta de una
+//      sola vez, sin duplicar texto (referencia los nodos que ya se muestran).
+//   2. `aria-describedby` de CADA control de respuesta: así la pregunta se
+//      vuelve a leer junto a la respuesta al tabular por las opciones, que era
+//      justo lo que faltaba (antes solo se leía la respuesta).
+// ─────────────────────────────────────────────
+const COUNTER_ID = 'exercise-counter';
+const INSTRUCTION_ID = 'exercise-instruction';
+const QUESTION_ID = 'exercise-question';
+const IMAGE_ID = 'exercise-image';
+const SENTENCE_ID = 'exercise-sentence';
+const SPEAK_ID = 'exercise-speaking-phrase';
+const ANSWER_ID = 'exercise-current-answer';
+
+const TYPE_NAMES: Record<ExerciseType, string> = {
+  'multiple-choice': 'Selección múltiple',
+  'image-choice': 'Imagen con opciones',
+  'fill-blank': 'Completar oración',
+  'word-order': 'Ordenar palabras',
+  'translate': 'Traducción',
+  'speaking': 'Pronunciación',
+};
+
+const TYPE_ICONS: Record<ExerciseType, string> = {
+  'multiple-choice': '🔘',
+  'image-choice': '🖼️',
+  'fill-blank': '✏️',
+  'word-order': '🔀',
+  'translate': '🌍',
+  'speaking': '🎤',
+};
 
 // ─────────────────────────────────────────────
 // Answer normalisation
@@ -35,16 +73,23 @@ function useTextAnswer(exercise: ExerciseItem, onAnswer: (answer: string) => voi
 }
 
 // ─────────────────────────────────────────────
-// Multiple Choice
+// Opciones (selección múltiple y ejercicios con imagen)
+//
+// El nombre accesible de cada botón se calcula desde su contenido (no con
+// aria-label) para poder marcar la palabra inglesa con lang="en" y que el
+// lector de pantalla la pronuncie con voz inglesa (WCAG 3.1.2).
 // ─────────────────────────────────────────────
-function MultipleChoice({
+function ChoiceOptions({
   exercise,
   onAnswer,
+  describedBy,
 }: Readonly<{
   exercise: ExerciseItem;
   onAnswer: (answer: string) => void;
+  describedBy: string;
 }>) {
   const [selected, setSelected] = useState<string | null>(null);
+  const options = exercise.options ?? [];
 
   const pick = (opt: string) => {
     if (selected) return;
@@ -53,8 +98,8 @@ function MultipleChoice({
   };
 
   return (
-    <div className="space-y-3">
-      {exercise.options!.map(opt => {
+    <div className="space-y-3" role="group" aria-label="Opciones de respuesta">
+      {options.map((opt, i) => {
         const isChosenRight = selected === opt && opt === exercise.correctAnswer;
         const isChosenWrong = selected === opt && opt !== exercise.correctAnswer;
         const isRevealedCorrect = !!selected && !isChosenRight && opt === exercise.correctAnswer;
@@ -72,26 +117,35 @@ function MultipleChoice({
           indicatorClass = 'border-slate-300';
         }
 
+        // Estado leído por el lector de pantalla: el color nunca es la única
+        // señal de acierto o error (WCAG 1.4.1).
+        let stateText = '';
+        if (isChosenRight) stateText = '. Tu respuesta, correcta';
+        else if (isChosenWrong) stateText = '. Tu respuesta, incorrecta';
+        else if (isRevealedCorrect) stateText = '. Esta era la respuesta correcta';
+
         return (
           <button
             key={opt}
             onClick={() => pick(opt)}
             disabled={!!selected}
-            lang="en"
+            aria-describedby={describedBy}
             className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${optionClass}`}
             style={{ fontWeight: 500 }}
           >
-            <div className="flex items-center gap-3">
-              <div
+            <span className="flex items-center gap-3">
+              <span
                 className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${indicatorClass}`}
+                aria-hidden="true"
               >
-                {(isChosenRight || isRevealedCorrect) && <CheckCircle2 className="w-3.5 h-3.5 text-white" aria-hidden="true" />}
-                {isChosenWrong && <XCircle className="w-3.5 h-3.5 text-white" aria-hidden="true" />}
-              </div>
-              {opt}
+                {(isChosenRight || isRevealedCorrect) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                {isChosenWrong && <XCircle className="w-3.5 h-3.5 text-white" />}
+              </span>
+              <span lang="en">{opt}</span>
+              <span className="sr-only">. Opción {i + 1} de {options.length}{stateText}</span>
               {(isChosenRight || isRevealedCorrect) && <CheckCircle2 className="w-4 h-4 text-green-600 ml-auto" aria-hidden="true" />}
               {isChosenWrong && <XCircle className="w-4 h-4 text-red-500 ml-auto" aria-hidden="true" />}
-            </div>
+            </span>
           </button>
         );
       })}
@@ -114,8 +168,7 @@ function FillBlank({
 
   const pick = (word: string) => {
     if (submitted) return;
-    const newChosen = chosen === word ? null : word;
-    setChosen(newChosen);
+    setChosen(prev => (prev === word ? null : word));
   };
 
   const submit = () => {
@@ -125,6 +178,7 @@ function FillBlank({
   };
 
   const parts = exercise.sentence!.split('[BLANK]');
+  const wordBank = exercise.wordBank ?? [];
   const isCorrect = chosen === exercise.correctAnswer;
 
   let blankClass: string;
@@ -140,8 +194,22 @@ function FillBlank({
 
   return (
     <div className="space-y-5">
-      {/* Sentence with blank */}
-      <div className="bg-slate-50 rounded-2xl p-4 text-center" lang="en" style={{ fontSize: '1rem', lineHeight: 1.6, color: '#1e293b', fontWeight: 500 }}>
+      {/* Versión hablada de la oración: es a la vez la descripción de cada
+          palabra del banco (aria-describedby) y una región viva, así que al
+          elegir una palabra se anuncia cómo queda la oración completa. */}
+      <p id={SENTENCE_ID} className="sr-only" role="status" aria-live="polite">
+        Oración: <span lang="en">{parts[0]}</span>
+        {chosen ? <span lang="en">{chosen}</span> : <span>espacio en blanco</span>}
+        <span lang="en">{parts[1]}</span>
+      </p>
+
+      {/* Oración visible (duplicado visual de la anterior) */}
+      <div
+        className="bg-slate-50 rounded-2xl p-4 text-center"
+        lang="en"
+        aria-hidden="true"
+        style={{ fontSize: '1rem', lineHeight: 1.6, color: '#1e293b', fontWeight: 500 }}
+      >
         {parts[0]}
         <span
           className={`inline-block min-w-[80px] px-3 py-0.5 mx-1 rounded-lg border-2 transition-colors ${blankClass}`}
@@ -153,8 +221,8 @@ function FillBlank({
       </div>
 
       {/* Word bank */}
-      <div className="flex flex-wrap gap-2 justify-center" lang="en">
-        {exercise.wordBank!.map(word => {
+      <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Palabras para completar la oración">
+        {wordBank.map((word, i) => {
           const isChosenWord = chosen === word;
           let wordClass: string;
           if (isChosenWord && submitted) {
@@ -171,10 +239,13 @@ function FillBlank({
               key={word}
               onClick={() => pick(word)}
               disabled={submitted}
+              aria-pressed={isChosenWord}
+              aria-describedby={SENTENCE_ID}
               className={`px-4 py-2 rounded-xl border-2 transition-all ${wordClass}`}
               style={{ fontWeight: 500 }}
             >
-              {word}
+              <span lang="en">{word}</span>
+              <span className="sr-only">. Palabra {i + 1} de {wordBank.length}</span>
             </button>
           );
         })}
@@ -185,6 +256,7 @@ function FillBlank({
         <button
           onClick={submit}
           disabled={!chosen}
+          aria-describedby={SENTENCE_ID}
           className={`w-full py-3.5 rounded-2xl transition-all ${
             chosen
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
@@ -213,10 +285,41 @@ function WordOrder({
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
+  // Al elegir o quitar una palabra su botón desaparece del DOM y el foco se
+  // caería al <body>: quien navega con teclado o lector de pantalla tendría que
+  // recorrer la página otra vez. Lo movemos al botón que ocupa ese hueco
+  // (WCAG 2.4.3, orden del foco).
+  const bankRef = useRef<HTMLDivElement>(null);
+  const answerRef = useRef<HTMLDivElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
+  const [focusTarget, setFocusTarget] = useState<{ zone: 'bank' | 'answer'; index: number } | null>(null);
+
+  useEffect(() => {
+    if (!focusTarget) return;
+    const focusIn = (container: HTMLElement | null, index: number) => {
+      const buttons = container?.querySelectorAll<HTMLButtonElement>('button:not([disabled])');
+      if (!buttons || buttons.length === 0) return false;
+      buttons[Math.min(index, buttons.length - 1)].focus();
+      return true;
+    };
+    const primary = focusTarget.zone === 'bank' ? bankRef.current : answerRef.current;
+    const fallback = focusTarget.zone === 'bank' ? answerRef.current : bankRef.current;
+    if (!focusIn(primary, focusTarget.index)) {
+      // Si el banco se queda vacío, lo siguiente que toca es comprobar.
+      if (focusTarget.zone === 'bank' && submitRef.current) {
+        submitRef.current.focus();
+      } else if (!focusIn(fallback, 0)) {
+        submitRef.current?.focus();
+      }
+    }
+    setFocusTarget(null);
+  }, [focusTarget]);
+
   const addWord = (word: string, idx: number) => {
     if (submitted) return;
     setAvailable(a => a.filter((_, i) => i !== idx));
     setSelected(s => [...s, word]);
+    setFocusTarget({ zone: 'bank', index: idx });
   };
 
   const removeWord = (idx: number) => {
@@ -224,6 +327,7 @@ function WordOrder({
     const word = selected[idx];
     setSelected(s => s.filter((_, i) => i !== idx));
     setAvailable(a => [...a, word]);
+    setFocusTarget({ zone: 'answer', index: idx });
   };
 
   const submit = () => {
@@ -244,12 +348,23 @@ function WordOrder({
 
   return (
     <div className="space-y-5">
+      {/* Respuesta en construcción: región viva + descripción de los botones,
+          para que quien no ve la pantalla sepa siempre cómo va la oración. */}
+      <p id={ANSWER_ID} className="sr-only" role="status" aria-live="polite">
+        {selected.length === 0
+          ? 'Tu respuesta está vacía. Elige palabras del banco de palabras.'
+          : <>Tu respuesta: <span lang="en">{userAnswer}</span></>}
+      </p>
+
       {/* Answer area */}
       <div
+        ref={answerRef}
         className={`min-h-[3.5rem] bg-white rounded-2xl border-2 p-3 flex flex-wrap gap-2 transition-colors ${answerAreaClass}`}
+        role="group"
+        aria-label="Tu respuesta. Activa una palabra para quitarla"
       >
         {selected.length === 0 && (
-          <span className="text-slate-500 self-center mx-auto" style={{ fontSize: '0.85rem' }}>
+          <span className="text-slate-500 self-center mx-auto" aria-hidden="true" style={{ fontSize: '0.85rem' }}>
             Toca las palabras para ordenarlas
           </span>
         )}
@@ -265,28 +380,27 @@ function WordOrder({
               key={`${word}-${i}`}
               onClick={() => removeWord(i)}
               disabled={submitted}
-              lang="en"
-              aria-label={`Quitar la palabra ${word} de tu respuesta`}
               className={`px-3 py-1.5 rounded-xl border-2 transition-all ${selectedWordClass}`}
               style={{ fontWeight: 600 }}
             >
-              {word}
+              <span lang="en">{word}</span>
+              <span className="sr-only">. Posición {i + 1} de tu respuesta. Activa para quitarla</span>
             </button>
           );
         })}
       </div>
 
       {/* Separator */}
-      <div className="h-px bg-slate-100" />
+      <div className="h-px bg-slate-100" aria-hidden="true" />
 
       {/* Word bank */}
-      <div className="flex flex-wrap gap-2" lang="en">
+      <div ref={bankRef} className="flex flex-wrap gap-2" role="group" aria-label="Banco de palabras disponibles">
         {available.map((word, i) => (
           <button
             key={`${word}-${i}`}
             onClick={() => addWord(word, i)}
             disabled={submitted}
-            aria-label={`Añadir la palabra ${word} a tu respuesta`}
+            aria-describedby={ANSWER_ID}
             className={`px-3 py-2 rounded-xl border-2 transition-all ${
               submitted
                 ? 'border-slate-200 bg-slate-100 text-slate-400 opacity-40'
@@ -294,7 +408,8 @@ function WordOrder({
             }`}
             style={{ fontWeight: 500 }}
           >
-            {word}
+            <span lang="en">{word}</span>
+            <span className="sr-only">. Palabra {i + 1} de {available.length} disponibles. Activa para añadirla a tu respuesta</span>
           </button>
         ))}
       </div>
@@ -302,8 +417,10 @@ function WordOrder({
       {/* Submit */}
       {!submitted && (
         <button
+          ref={submitRef}
           onClick={submit}
           disabled={selected.length === 0}
+          aria-describedby={ANSWER_ID}
           className={`w-full py-3.5 rounded-2xl transition-all ${
             selected.length > 0
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
@@ -329,11 +446,6 @@ function Translate({
   onAnswer: (answer: string) => void;
 }>) {
   const { value, setValue, submitted, submit, isCorrect } = useTextAnswer(exercise, onAnswer);
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    ref.current?.focus();
-  }, []);
 
   let textareaClass: string;
   if (submitted) {
@@ -344,19 +456,14 @@ function Translate({
 
   return (
     <div className="space-y-4">
-      {/* Phrase to translate */}
-      <div className="bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-4 text-center">
-        <p className="text-indigo-800" style={{ fontWeight: 600, fontSize: '1.05rem' }}>{exercise.question}</p>
-      </div>
-
-      {/* Input */}
+      {/* El campo toma su nombre de la instrucción + la frase a traducir, así
+          que al llegar a él se vuelve a leer la pregunta completa. */}
       <textarea
-        ref={ref}
         value={value}
         onChange={e => !submitted && setValue(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
         placeholder="Escribe tu respuesta en inglés..."
-        aria-label="Escribe tu respuesta en inglés"
+        aria-labelledby={`${INSTRUCTION_ID} ${QUESTION_ID}`}
         lang="en"
         disabled={submitted}
         className={`w-full rounded-2xl border-2 p-4 resize-none outline-none transition-colors placeholder:text-slate-500 ${textareaClass}`}
@@ -369,6 +476,7 @@ function Translate({
         <button
           onClick={submit}
           disabled={!value.trim()}
+          aria-describedby={QUESTION_ID}
           className={`w-full py-3.5 rounded-2xl transition-all ${
             value.trim()
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
@@ -384,7 +492,7 @@ function Translate({
 }
 
 // ─────────────────────────────────────────────
-// Speaking (pronunciación) — con alternativa de texto siempre disponible
+// Speaking (pronunciación) — con alternativa de texto siempre visible
 // ─────────────────────────────────────────────
 function Speaking({
   exercise,
@@ -396,7 +504,6 @@ function Speaking({
   const { value, setValue, submitted, submit, isCorrect } = useTextAnswer(exercise, onAnswer);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState('');
-  const [showFallback, setShowFallback] = useState(false);
 
   const SpeechRecognitionCtor =
     typeof window !== 'undefined' ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
@@ -420,11 +527,10 @@ function Speaking({
     recognizer.onresult = (event: any) => {
       const heard = event.results[0][0].transcript;
       setValue(heard);
-      setStatus(`Escuché: "${heard}"`);
+      setStatus(`Escuché: "${heard}". Pulsa Comprobar o edita el texto.`);
     };
     recognizer.onerror = () => {
-      setStatus('No pude escucharte bien. Intenta de nuevo o escribe tu respuesta.');
-      setShowFallback(true);
+      setStatus('No pude escucharte bien. Intenta de nuevo o escribe tu respuesta abajo.');
     };
     recognizer.onend = () => setListening(false);
     recognizer.start();
@@ -440,28 +546,32 @@ function Speaking({
   return (
     <div className="space-y-4">
       <div className="bg-slate-50 rounded-2xl p-5 text-center">
-        <p className="text-slate-800" lang="en" style={{ fontWeight: 700, fontSize: '1.15rem' }}>{exercise.correctAnswer}</p>
+        <p id={SPEAK_ID} className="text-slate-800" lang="en" style={{ fontWeight: 700, fontSize: '1.15rem' }}>
+          {exercise.correctAnswer}
+        </p>
         <p className="text-slate-600 mt-1" style={{ fontSize: '0.78rem' }}>Pronuncia la oración o escríbela si prefieres.</p>
       </div>
 
       <div className="flex items-center justify-center gap-4">
         <button
           onClick={speak}
-          aria-label="Escuchar pronunciación"
+          aria-describedby={SPEAK_ID}
           className="w-12 h-12 rounded-full bg-slate-100 text-indigo-600 flex items-center justify-center border border-slate-200"
         >
           <Volume2 className="w-5 h-5" aria-hidden="true" />
+          <span className="sr-only">Escuchar la pronunciación de la frase</span>
         </button>
         <button
           onClick={startListening}
           disabled={!SpeechRecognitionCtor || submitted}
           aria-pressed={listening}
-          aria-label="Grabar mi pronunciación"
+          aria-describedby={SPEAK_ID}
           className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-md transition-colors ${
             SpeechRecognitionCtor ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-slate-200 text-slate-400'
           }`}
         >
           <Mic className="w-6 h-6" aria-hidden="true" />
+          <span className="sr-only">Grabar mi pronunciación</span>
         </button>
       </div>
 
@@ -469,26 +579,32 @@ function Speaking({
         {status || (!SpeechRecognitionCtor ? 'El reconocimiento de voz no está disponible en este navegador. Escribe tu respuesta abajo.' : '')}
       </p>
 
-      {/* La alternativa de texto siempre está disponible: sin mic, sin permisos o sin soporte del navegador, el ejercicio sigue siendo accesible. */}
-      <details open={showFallback || !SpeechRecognitionCtor} className="border-t border-slate-100 pt-3">
-        <summary className="text-indigo-600 cursor-pointer" style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-          ¿Prefieres escribir tu respuesta?
-        </summary>
+      {/* La alternativa de texto está siempre visible (antes se escondía dentro
+          de un <details>): sin micrófono, sin permisos o sin soporte del
+          navegador, el ejercicio sigue siendo resoluble. */}
+      <div className="border-t border-slate-100 pt-3">
+        <label htmlFor="speaking-text-answer" className="text-indigo-700 block mb-2" style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+          O escribe la frase en inglés:
+        </label>
         <input
+          id="speaking-text-answer"
           type="text"
           value={value}
           onChange={e => !submitted && setValue(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
           disabled={submitted}
-          aria-label="Escribe la oración en inglés"
+          aria-describedby={SPEAK_ID}
+          lang="en"
           placeholder="Escribe la oración aquí..."
-          className={`mt-3 w-full rounded-xl border-2 p-3 outline-none transition-colors ${fallbackInputClass}`}
+          className={`w-full rounded-xl border-2 p-3 outline-none transition-colors ${fallbackInputClass}`}
         />
-      </details>
+      </div>
 
       {!submitted && (
         <button
           onClick={submit}
           disabled={!value.trim()}
+          aria-describedby={SPEAK_ID}
           className={`w-full py-3.5 rounded-2xl transition-all ${
             value.trim() ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
           }`}
@@ -502,19 +618,31 @@ function Speaking({
 }
 
 // ─────────────────────────────────────────────
-// Exercise heading — se autoenfoca al montar (nuevo ejercicio) para no perder
-// el foco de teclado cuando el botón "Continuar" desaparece del DOM (WCAG 2.4.3).
+// Enunciado del ejercicio
+//
+// Se enfoca a sí mismo al montarse (cada ejercicio nuevo lo remonta), porque
+// AnimatePresence mode="wait" retrasa el montaje del siguiente ejercicio: un
+// efecto en la página padre se ejecutaría antes de que este nodo exista.
+// Al recibir el foco, el lector de pantalla lee su nombre accesible, que es el
+// enunciado completo: tipo y número de ejercicio, instrucción, imagen y pregunta.
 // ─────────────────────────────────────────────
-function ExerciseHeading({ instruction, autoFocus }: Readonly<{ instruction: string; autoFocus: boolean }>) {
-  const ref = useRef<HTMLHeadingElement>(null);
+function ExercisePrompt({
+  promptRef,
+  labelledBy,
+  children,
+}: Readonly<{
+  promptRef: React.RefObject<HTMLDivElement | null>;
+  labelledBy: string;
+  children: React.ReactNode;
+}>) {
   useEffect(() => {
-    if (autoFocus) ref.current?.focus();
+    promptRef.current?.focus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <h1 ref={ref} tabIndex={-1} className="text-slate-800 mb-1 outline-none" style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-      {instruction}
-    </h1>
+    <div ref={promptRef} tabIndex={-1} role="group" aria-labelledby={labelledBy} className="outline-none">
+      {children}
+    </div>
   );
 }
 
@@ -526,31 +654,37 @@ function FeedbackPanel({
   exercise,
   userAnswer,
   isAlternate,
+  isLastExercise,
   onContinue,
 }: Readonly<{
   isCorrect: boolean;
   exercise: ExerciseItem;
   userAnswer: string;
   isAlternate: boolean;
+  isLastExercise: boolean;
   onContinue: () => void;
 }>) {
   let feedbackMessage: string;
   if (isCorrect && isAlternate) {
-    feedbackMessage = '¡Tu respuesta también es correcta! ✨';
+    feedbackMessage = '¡Tu respuesta también es correcta!';
   } else if (isCorrect) {
-    feedbackMessage = '¡Correcto! 🎉';
+    feedbackMessage = '¡Correcto!';
   } else {
     feedbackMessage = '¡Casi! Revisa la explicación';
   }
 
-  // El botón que el usuario acaba de pulsar (Comprobar / opción de respuesta) se
-  // deshabilita o desaparece del DOM al llegar aquí, así que el foco de teclado
-  // cae al <body>. Lo recuperamos sobre "Continuar" para no perder el orden de
-  // tabulación (WCAG 2.4.3) ni obligar a recorrer la página desde el principio.
-  const continueBtnRef = useRef<HTMLButtonElement>(null);
+  // El foco va al panel completo, no al botón "Continuar": al ser un grupo con
+  // nombre accesible (resultado + respuestas + explicación), el lector de
+  // pantalla lee TODO el resultado en cuanto aparece. Es más fiable que un
+  // aria-live sobre un nodo que acaba de insertarse en el DOM. "Continuar" es
+  // el siguiente elemento tabulable.
+  const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    continueBtnRef.current?.focus();
+    panelRef.current?.focus();
   }, []);
+
+  const labelIds = ['feedback-heading', 'feedback-explanation'];
+  if (!isCorrect) labelIds.splice(1, 0, 'feedback-detail');
 
   return (
     <motion.div
@@ -558,8 +692,10 @@ function FeedbackPanel({
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      role="status"
-      aria-live="assertive"
+      ref={panelRef}
+      tabIndex={-1}
+      role="group"
+      aria-labelledby={labelIds.join(' ')}
       className={`fixed bottom-0 left-0 right-0 z-30 rounded-t-3xl shadow-2xl border-t-4 ${
         isCorrect ? 'bg-green-50 border-green-400' : 'bg-red-50 border-red-400'
       }`}
@@ -567,18 +703,18 @@ function FeedbackPanel({
       <div className="max-w-2xl mx-auto px-5 py-5">
         {/* Header */}
         <div className="flex items-start gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`} aria-hidden="true">
             {isCorrect
               ? <CheckCircle2 className="w-5 h-5 text-green-600" />
               : <XCircle className="w-5 h-5 text-red-500" />
             }
           </div>
           <div className="flex-1">
-            <p className={`${isCorrect ? 'text-green-700' : 'text-red-700'}`} style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-              {feedbackMessage}
-            </p>
+            <h2 id="feedback-heading" className={`${isCorrect ? 'text-green-700' : 'text-red-700'}`} style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+              {feedbackMessage} <span aria-hidden="true">{isCorrect ? '🎉' : ''}</span>
+            </h2>
             {!isCorrect && (
-              <div className="mt-1 space-y-0.5">
+              <div id="feedback-detail" className="mt-1 space-y-0.5">
                 <p className="text-red-700" style={{ fontSize: '0.75rem' }}>Tu respuesta: <span lang="en" style={{ fontWeight: 600 }}>"{userAnswer}"</span></p>
                 <p className="text-green-700" style={{ fontSize: '0.75rem' }}>Respuesta correcta: <span lang="en" style={{ fontWeight: 600 }}>"{exercise.correctAnswer}"</span></p>
               </div>
@@ -588,15 +724,14 @@ function FeedbackPanel({
 
         {/* Explanation */}
         <div className={`rounded-xl p-3 mb-4 flex gap-2 ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
-          <Lightbulb className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isCorrect ? 'text-green-600' : 'text-red-500'}`} />
-          <p className={`${isCorrect ? 'text-green-800' : 'text-red-800'}`} style={{ fontSize: '0.82rem', lineHeight: 1.5 }}>
+          <Lightbulb className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isCorrect ? 'text-green-600' : 'text-red-500'}`} aria-hidden="true" />
+          <p id="feedback-explanation" className={`${isCorrect ? 'text-green-800' : 'text-red-800'}`} style={{ fontSize: '0.82rem', lineHeight: 1.5 }}>
             {exercise.explanation}
           </p>
         </div>
 
         {/* Continue */}
         <button
-          ref={continueBtnRef}
           onClick={onContinue}
           className={`w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-colors ${
             isCorrect
@@ -606,7 +741,8 @@ function FeedbackPanel({
           style={{ fontWeight: 600 }}
         >
           Continuar
-          <ChevronRight className="w-4 h-4" />
+          <span className="sr-only">{isLastExercise ? ' y ver los resultados de la lección' : ' al siguiente ejercicio'}</span>
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
     </motion.div>
@@ -646,14 +782,11 @@ export function Exercise() {
   const [exerciseKey, setExerciseKey] = useState(0);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // AnimatePresence (mode="wait") retrasa el montaje del siguiente ejercicio hasta
-  // que el anterior termina de salir, así que fijar el foco en un efecto atado a
-  // exerciseKey en este componente no sirve: el nodo nuevo aún no existe cuando se
-  // ejecuta. ExerciseHeading se enfoca a sí mismo en su propio montaje en su lugar;
-  // esta bandera solo evita el autofoco en la primera carga de la lección.
-  const hasRenderedExerciseRef = useRef(false);
-  const autoFocusHeading = hasRenderedExerciseRef.current;
-  hasRenderedExerciseRef.current = true;
+  // Grupo del enunciado: recibe el foco al entrar en la lección y cada vez que
+  // cambia de ejercicio, de modo que el lector de pantalla lee el enunciado
+  // completo (tipo, instrucción, imagen y pregunta) sin que el usuario tenga
+  // que buscarlo. El botón "Repetir enunciado" vuelve a enfocarlo.
+  const promptRef = useRef<HTMLDivElement>(null);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -688,7 +821,25 @@ export function Exercise() {
   const exercises = lesson.exercises;
   const current = exercises[exerciseIdx];
   const progress = (exerciseIdx / exercises.length) * 100;
-  const timeLabel = `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  const timeLabel = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  const isLastExercise = exerciseIdx === exercises.length - 1;
+
+  // Nombre accesible del enunciado: referencia los nodos ya visibles en pantalla
+  // (no duplica texto oculto) y se lee de una vez al enfocar el grupo.
+  const promptIds = [COUNTER_ID, INSTRUCTION_ID];
+  if (current.image) promptIds.push(IMAGE_ID);
+  if (current.question) promptIds.push(QUESTION_ID);
+  if (current.type === 'fill-blank') promptIds.push(SENTENCE_ID);
+  if (current.type === 'speaking') promptIds.push(SPEAK_ID);
+
+  // Descripción que acompaña a cada respuesta: la pregunta (y la imagen, si la
+  // hay). Es lo que hace que el lector de pantalla lea pregunta + respuesta.
+  const answerDescIds: string[] = [];
+  if (current.question) answerDescIds.push(QUESTION_ID);
+  if (current.image) answerDescIds.push(IMAGE_ID);
+  const answerDescribedBy = answerDescIds.join(' ') || INSTRUCTION_ID;
 
   const handleAnswer = (answer: string) => {
     stopTimer();
@@ -763,20 +914,17 @@ export function Exercise() {
     // timer will be restarted by the isPaused effect (false → startTimer)
   };
 
-  const TYPE_LABELS: Record<string, string> = {
-    'multiple-choice': '🔘 Selección múltiple',
-    'fill-blank': '✏️ Completar oración',
-    'word-order': '🔀 Ordenar palabras',
-    'translate': '🌍 Traducción',
-    'speaking': '🎤 Pronunciación',
-  };
+  // Con el modal de pausa abierto, el resto de la pantalla queda inerte: el
+  // lector de pantalla no puede salirse del diálogo con el cursor virtual
+  // (el atrapado de Tab por sí solo no lo impide).
+  const inertWhilePaused = (isPaused ? { inert: '' } : {}) as Record<string, unknown>;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <a href="#exercise-content" className="skip-link">Saltar al ejercicio</a>
       {/* ── TOP BAR ── */}
-      <header className="fixed top-0 left-0 right-0 z-20 bg-white border-b border-slate-100 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
+      <header {...inertWhilePaused} className="fixed top-0 left-0 right-0 z-20 bg-white border-b border-slate-100 shadow-sm">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
           {/* Close */}
           <button
             onClick={handleExit}
@@ -799,10 +947,24 @@ export function Exercise() {
             />
           </div>
 
-          {/* Timer */}
-          <span className="text-slate-500 flex-shrink-0" aria-label={`Tiempo transcurrido: ${timeLabel}`} style={{ fontWeight: 600, fontSize: '0.8rem', minWidth: '3rem', textAlign: 'right' }}>
-            {timeLabel}
+          {/* Timer — el texto visible es abreviado, el hablado es completo.
+              (aria-label sobre un <span> sin rol no lo exponen todos los
+              lectores de pantalla, así que se usa texto para lectores.) */}
+          <span className="text-slate-500 flex-shrink-0" style={{ fontWeight: 600, fontSize: '0.8rem', minWidth: '3rem', textAlign: 'right' }}>
+            <span aria-hidden="true">{timeLabel}</span>
+            <span className="sr-only">
+              {`Tiempo transcurrido: ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'} y ${remainingSeconds} ${remainingSeconds === 1 ? 'segundo' : 'segundos'}`}
+            </span>
           </span>
+
+          {/* Repetir enunciado */}
+          <button
+            onClick={() => promptRef.current?.focus()}
+            aria-label="Repetir el enunciado del ejercicio"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" aria-hidden="true" />
+          </button>
 
           {/* Pause */}
           <button
@@ -814,7 +976,7 @@ export function Exercise() {
           </button>
         </div>
 
-        {/* Exercise counter */}
+        {/* Exercise counter (decorativo: el conteo se anuncia en el enunciado) */}
         <div className="pb-2 px-4 flex justify-center">
           <div className="flex items-center gap-1.5" aria-hidden="true">
             {exercises.map((exercise, i) => {
@@ -838,7 +1000,7 @@ export function Exercise() {
       </header>
 
       {/* ── EXERCISE AREA ── */}
-      <main id="exercise-content" tabIndex={-1} className="flex-1 pt-[5.5rem] pb-6">
+      <main {...inertWhilePaused} id="exercise-content" tabIndex={-1} className="flex-1 pt-[5.5rem] pb-6">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <AnimatePresence mode="wait">
             <motion.div
@@ -848,29 +1010,46 @@ export function Exercise() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Exercise type tag */}
-              <div className="mb-3">
-                <span className="text-slate-600" style={{ fontSize: '0.72rem', fontWeight: 600 }}>
-                  {TYPE_LABELS[current.type]} · {exerciseIdx + 1}/{exercises.length}
-                </span>
-              </div>
+              {/* ── ENUNCIADO (grupo enfocable que se lee entero) ── */}
+              <ExercisePrompt promptRef={promptRef} labelledBy={promptIds.join(' ')}>
+                {/* Exercise type + posición */}
+                <p id={COUNTER_ID} className="text-slate-600 mb-3" style={{ fontSize: '0.72rem', fontWeight: 600 }}>
+                  <span aria-hidden="true">{TYPE_ICONS[current.type]} </span>
+                  {TYPE_NAMES[current.type]} · Ejercicio {exerciseIdx + 1} de {exercises.length}
+                </p>
 
-              {/* Instruction */}
-              <ExerciseHeading instruction={current.instruction} autoFocus={autoFocusHeading} />
+                {/* Instruction */}
+                <h1 id={INSTRUCTION_ID} className="text-slate-800 mb-3" style={{ fontWeight: 700, fontSize: '1.1rem' }}>
+                  {current.instruction}
+                </h1>
 
-              {/* Question (for MC & translate show it; fill-blank/word-order show sentence) */}
-              {current.question && current.type !== 'translate' && (
-                <div className="bg-indigo-50 rounded-2xl p-4 mb-5 border border-indigo-100">
-                  <p className="text-indigo-800" style={{ fontWeight: 500, fontSize: '1rem', lineHeight: 1.5 }}>
-                    {current.question}
-                  </p>
-                </div>
-              )}
+                {/* Imagen del ejercicio: el alt es la única vía de acceso al
+                    dibujo para quien no ve, así que describe el objeto. */}
+                {current.image && (
+                  <img
+                    id={IMAGE_ID}
+                    src={current.image.src}
+                    alt={current.image.alt}
+                    width={176}
+                    height={176}
+                    className="w-44 h-44 mx-auto mb-4 rounded-2xl border-2 border-slate-200 bg-white shadow-sm"
+                  />
+                )}
+
+                {/* Question */}
+                {current.question && (
+                  <div className="bg-indigo-50 rounded-2xl p-4 mb-5 border border-indigo-100">
+                    <p id={QUESTION_ID} className="text-indigo-800" style={{ fontWeight: 500, fontSize: '1rem', lineHeight: 1.5 }}>
+                      {current.question}
+                    </p>
+                  </div>
+                )}
+              </ExercisePrompt>
 
               {/* Exercise component */}
               <div className={status !== 'answering' ? 'pb-44' : ''}>
-                {current.type === 'multiple-choice' && (
-                  <MultipleChoice key={exerciseKey} exercise={current} onAnswer={handleAnswer} />
+                {(current.type === 'multiple-choice' || current.type === 'image-choice') && (
+                  <ChoiceOptions key={exerciseKey} exercise={current} onAnswer={handleAnswer} describedBy={answerDescribedBy} />
                 )}
                 {current.type === 'fill-blank' && (
                   <FillBlank key={exerciseKey} exercise={current} onAnswer={handleAnswer} />
@@ -891,17 +1070,20 @@ export function Exercise() {
       </main>
 
       {/* ── FEEDBACK PANEL ── */}
-      <AnimatePresence>
-        {status !== 'answering' && (
-          <FeedbackPanel
-            isCorrect={status === 'correct'}
-            exercise={current}
-            userAnswer={userAnswer}
-            isAlternate={isAlternate}
-            onContinue={handleContinue}
-          />
-        )}
-      </AnimatePresence>
+      <div {...inertWhilePaused}>
+        <AnimatePresence>
+          {status !== 'answering' && (
+            <FeedbackPanel
+              isCorrect={status === 'correct'}
+              exercise={current}
+              userAnswer={userAnswer}
+              isAlternate={isAlternate}
+              isLastExercise={isLastExercise}
+              onContinue={handleContinue}
+            />
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ── PAUSE MODAL ── */}
       <PauseModal

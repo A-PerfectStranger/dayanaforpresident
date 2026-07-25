@@ -55,12 +55,21 @@ function getScoreMessage(score: number): string {
   return 'Sigue practicando 💪';
 }
 
+// Misma valoración sin emojis, para el resumen que lee el lector de pantalla.
+function getScoreMessagePlain(score: number): string {
+  if (score === 100) return '¡Perfecto!';
+  if (score >= 80) return '¡Excelente!';
+  if (score >= 60) return '¡Bien hecho!';
+  return 'Sigue practicando';
+}
+
 export function Results() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { completeLesson, resetLesson } = useApp();
   const confettiFired = useRef(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
   usePageTitle('Resultados de la lección');
 
   const resultData = location.state as ResultState | null;
@@ -90,6 +99,9 @@ export function Results() {
     if (lessonId && resultData) {
       completeLesson(lessonId, score, stars, xpEarned, timeMinutes);
     }
+    // Al llegar desde el ejercicio el foco se quedaría en <body> y el lector de
+    // pantalla no diría nada: lo llevamos al resumen del resultado.
+    summaryRef.current?.focus();
   }, []);
 
   const handleRetry = () => {
@@ -106,6 +118,15 @@ export function Results() {
   const scoreBg = getScoreBg(score);
   const scoreRing = getScoreRing(score);
   const scoreMsg = getScoreMessage(score);
+
+  // Resumen hablado del resultado (se anuncia al enfocar el bloque de la nota).
+  const summaryLabel =
+    `${getScoreMessagePlain(score)} Resultado de la lección ${lesson?.title ?? ''}. ` +
+    `Puntuación: ${score} por ciento de aciertos. ${correctCount} de ${totalExercises} respuestas correctas. ` +
+    `Has ganado ${stars} de 3 estrellas y ${xpEarned} XP. Tiempo empleado: ${timeMinutes} ${timeMinutes === 1 ? 'minuto' : 'minutos'}. ` +
+    (errors.length > 0
+      ? `Tienes ${errors.length} ${errors.length === 1 ? 'error' : 'errores'} para repasar más abajo.`
+      : 'No has cometido ningún error.');
 
   if (!lesson) {
     return (
@@ -130,26 +151,33 @@ export function Results() {
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 space-y-5 pb-10">
-        {/* Score circle */}
+        {/* Score circle — grupo enfocable que recibe el foco al abrir la
+            pantalla: el lector de pantalla lee el resultado completo sin que
+            haya que buscarlo por la página. */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 200 }}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center outline-none"
+          ref={summaryRef}
+          tabIndex={-1}
+          role="group"
+          aria-label={summaryLabel}
         >
-          <output className="text-slate-700 mb-3 block" style={{ fontWeight: 600, fontSize: '0.85rem' }}>{scoreMsg}</output>
+          <output className="text-slate-700 mb-3 block" aria-hidden="true" style={{ fontWeight: 600, fontSize: '0.85rem' }}>{scoreMsg}</output>
 
           <div
             className={`w-32 h-32 rounded-full bg-gradient-to-br ${scoreBg} ring-8 ${scoreRing} flex flex-col items-center justify-center shadow-lg mb-4`}
-            role="img"
-            aria-label={`Puntuación: ${score} por ciento de aciertos`}
+            aria-hidden="true"
           >
-            <Trophy className="w-5 h-5 text-white mb-0.5" aria-hidden="true" />
-            <span className="text-white" aria-hidden="true" style={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1 }}>{score}%</span>
-            <span className="text-white" aria-hidden="true" style={{ fontSize: '0.7rem', fontWeight: 500 }}>aciertos</span>
+            <Trophy className="w-5 h-5 text-white mb-0.5" />
+            <span className="text-white" style={{ fontWeight: 800, fontSize: '2rem', lineHeight: 1 }}>{score}%</span>
+            <span className="text-white" style={{ fontSize: '0.7rem', fontWeight: 500 }}>aciertos</span>
           </div>
 
-          <StarDisplay count={stars} />
+          <div aria-hidden="true">
+            <StarDisplay count={stars} />
+          </div>
         </motion.div>
 
         {/* Stats grid */}
@@ -157,35 +185,53 @@ export function Results() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="grid grid-cols-3 gap-3"
+          className="grid grid-cols-3 gap-3 list-none p-0 m-0"
+          role="list"
         >
-          <fieldset className="bg-white rounded-2xl p-3.5 text-center shadow-sm border border-slate-100 min-w-0" aria-label={`${correctCount} de ${totalExercises} correctas`}>
-            <div className="flex justify-center mb-1.5">
-              <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
-                <Target className="w-4 h-4 text-green-600" aria-hidden="true" />
+          {[
+            {
+              key: 'correct',
+              label: `${correctCount} de ${totalExercises} respuestas correctas`,
+              value: `${correctCount}/${totalExercises}`,
+              caption: 'correctas',
+              bg: 'bg-green-100',
+              icon: <Target className="w-4 h-4 text-green-600" />,
+            },
+            {
+              key: 'time',
+              label: `Tiempo empleado: ${timeMinutes} ${timeMinutes === 1 ? 'minuto' : 'minutos'}`,
+              value: `${timeMinutes}m`,
+              caption: 'tiempo',
+              bg: 'bg-blue-100',
+              icon: <Clock className="w-4 h-4 text-blue-500" />,
+            },
+            {
+              key: 'xp',
+              label: `${xpEarned} puntos de experiencia ganados`,
+              value: `+${xpEarned}`,
+              caption: 'XP ganados',
+              bg: 'bg-amber-100',
+              icon: <Zap className="w-4 h-4 text-amber-500" />,
+            },
+          ].map(stat => (
+            <div
+              key={stat.key}
+              role="listitem"
+              className="bg-white rounded-2xl p-3.5 text-center shadow-sm border border-slate-100 min-w-0"
+            >
+              <div role="group" tabIndex={0} aria-label={stat.label}>
+                <div aria-hidden="true">
+                  <div className="flex justify-center mb-1.5">
+                    <div className={`w-8 h-8 ${stat.bg} rounded-xl flex items-center justify-center`}>
+                      {stat.icon}
+                    </div>
+                  </div>
+                  <p className="text-slate-800" style={{ fontWeight: 700, fontSize: '1.1rem' }}>{stat.value}</p>
+                  <p className="text-slate-600" style={{ fontSize: '0.75rem' }}>{stat.caption}</p>
+                </div>
               </div>
             </div>
-            <p className="text-slate-800" aria-hidden="true" style={{ fontWeight: 700, fontSize: '1.1rem' }}>{correctCount}/{totalExercises}</p>
-            <p className="text-slate-600" aria-hidden="true" style={{ fontSize: '0.75rem' }}>correctas</p>
-          </fieldset>
-          <fieldset className="bg-white rounded-2xl p-3.5 text-center shadow-sm border border-slate-100 min-w-0" aria-label={`${timeMinutes} minutos de tiempo`}>
-            <div className="flex justify-center mb-1.5">
-              <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-4 h-4 text-blue-500" aria-hidden="true" />
-              </div>
-            </div>
-            <p className="text-slate-800" aria-hidden="true" style={{ fontWeight: 700, fontSize: '1.1rem' }}>{timeMinutes}m</p>
-            <p className="text-slate-600" aria-hidden="true" style={{ fontSize: '0.75rem' }}>tiempo</p>
-          </fieldset>
-          <fieldset className="bg-white rounded-2xl p-3.5 text-center shadow-sm border border-slate-100 min-w-0" aria-label={`${xpEarned} XP ganados`}>
-            <div className="flex justify-center mb-1.5">
-              <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center">
-                <Zap className="w-4 h-4 text-amber-500" aria-hidden="true" />
-              </div>
-            </div>
-            <p className="text-slate-800" aria-hidden="true" style={{ fontWeight: 700, fontSize: '1.1rem' }}>+{xpEarned}</p>
-            <p className="text-slate-600" aria-hidden="true" style={{ fontSize: '0.75rem' }}>XP ganados</p>
-          </fieldset>
+          ))}
         </motion.div>
 
         {/* Error review */}
