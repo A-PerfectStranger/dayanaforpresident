@@ -26,14 +26,48 @@
 
   ### Ejercicios con imágenes
 
-  Los ejercicios de tipo `image-choice` muestran un dibujo (por ejemplo, un perro) y piden elegir cómo se dice en inglés entre cuatro opciones. Las ilustraciones son SVG propios en `public/images/exercises/`.
+  Los ejercicios de tipo `image-choice` muestran una imagen (por ejemplo, un perro) y piden elegir cómo se dice en inglés entre cuatro opciones.
 
-  Para que estos ejercicios funcionen igual sin ver la pantalla, cada imagen lleva un `alt` en español que describe el objeto («Dibujo de un perro marrón con las orejas caídas, visto de frente»). Ese texto:
+  Cada concepto tiene **dos** imágenes, y las dos viven en el catálogo `src/app/data/exerciseImages.ts`:
+
+  1. **La fotografía**, obtenida de [Unsplash](https://unsplash.com) y guardada en el propio repositorio, en `public/images/exercises/photos/`. Es lo que se muestra.
+  2. **El dibujo SVG propio**, en `public/images/exercises/`, que actúa de respaldo: se pinta si el concepto todavía no tiene foto elegida o si el archivo no llega a cargar en el navegador. Así la app nunca deja el hueco vacío ni depende de que un archivo esté presente.
+
+  Para que estos ejercicios funcionen igual sin ver la pantalla, **cada una de las dos imágenes lleva su propio `alt`** en español, y la pantalla usa el de la que realmente ha pintado: «Fotografía de un perro…» cuando se ve la foto, «Dibujo de un perro marrón con las orejas caídas, visto de frente» cuando se ve el dibujo. Describir un dibujo mientras en pantalla hay una fotografía dejaría el ejercicio sin solución. Ese texto:
 
   - se lee al entrar en el ejercicio, dentro del enunciado completo;
   - acompaña a cada opción de respuesta mediante `aria-describedby`, de modo que al recorrer las respuestas se vuelve a oír de qué imagen se trata.
 
-  El campo `alt` es obligatorio en el tipo `ExerciseImage`: sin él, el ejercicio no tendría solución para una persona ciega.
+  El `alt` es obligatorio en las dos imágenes del tipo `ExerciseImage`: sin él, el ejercicio no tendría solución para una persona ciega.
+
+  #### Añadir o cambiar una foto
+
+  Qué foto de Unsplash corresponde a cada concepto se declara en `src/app/data/unsplashPhotos.json`, que es la única fuente de verdad: de ahí salen las imágenes de la app y los créditos de `ATTRIBUTIONS.md`. Cada entrada lleva el identificador de la foto, su `alt` y la atribución del autor:
+
+  ```json
+  {
+    "photos": {
+      "dog": {
+        "id": "photo-1543466835-00a7907e9de1",
+        "alt": "Fotografía de un perro labrador dorado sentado sobre la hierba, mirando a la cámara",
+        "photographer": "Nombre del autor",
+        "photographerUrl": "https://unsplash.com/@usuario",
+        "photoUrl": "https://unsplash.com/photos/identificador"
+      }
+    }
+  }
+  ```
+
+  Después:
+
+  ```bash
+  npm run photos:fetch   # descarga las fotos a public/ y regenera los créditos
+  npm run photos:check   # valida catálogo, atribución y archivos, sin tocar la red
+  ```
+
+  `photos:fetch` pide las fotos al CDN de Unsplash ya recortadas a 448 × 448 (el doble de los 224 px a los que se pintan, para pantallas de densidad doble). `photos:check` falla si una foto declarada no está en disco, si le falta atribución o si su `alt` describe un dibujo en lugar de una fotografía.
+
+  Al elegir una foto, comprueba que el objeto se reconoce **sin contexto y recortado en cuadrado**: la imagen es el enunciado del ejercicio, así que una foto ambigua lo vuelve irresoluble.
 
   ## Accesibilidad — WCAG 2.2 (nivel AA)
 

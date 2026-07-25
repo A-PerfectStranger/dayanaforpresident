@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fotos de Unsplash de los ejercicios",
+  "type": "object",
+  "required": ["photos"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "photos": {
+      "type": "object",
+      "description": "Clave del catálogo (dog, cat, house…) → foto de Unsplash elegida.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["id", "alt", "photographer", "photographerUrl", "photoUrl"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^photo-[A-Za-z0-9-]+$",
+            "description": "Identificador de images.unsplash.com, por ejemplo photo-1543466835-00a7907e9de1."
+          },
+          "alt": {
+            "type": "string",
+            "minLength": 15,
+            "description": "Descripción en español de lo que se ve EN LA FOTO. Es la única vía por la que una persona ciega resuelve el ejercicio, así que debe bastar para identificar el objeto."
+          },
+          "photographer": { "type": "string", "minLength": 1 },
+          "photographerUrl": {
+            "type": "string",
+            "pattern": "^https://unsplash\\.com/@"
+          },
+          "photoUrl": {
+            "type": "string",
+            "pattern": "^https://unsplash\\.com/photos/"
+          }
+        }
+      }
+    }
+  }
+}

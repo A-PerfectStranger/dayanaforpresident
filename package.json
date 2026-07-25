@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "photos:fetch": "node scripts/unsplash-photos.mjs fetch",
+    "photos:check": "node scripts/unsplash-photos.mjs check"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

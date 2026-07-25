@@ -5,6 +5,7 @@ import { X, Pause, CheckCircle2, XCircle, Lightbulb, ChevronRight, Volume2, Mic,
 import { useApp } from '../context/AppContext';
 import { getLessonById, type ExerciseItem, type ExerciseType } from '../data/lessons';
 import { PauseModal } from '../components/PauseModal';
+import { ExerciseImage } from '../components/ExerciseImage';
 import { usePageTitle } from '../hooks/usePageTitle';
 
 // ─────────────────────────────────────────────
@@ -1144,19 +1145,10 @@ export function Exercise() {
                   {current.instruction}
                 </h1>
 
-                {/* Imagen del ejercicio: el alt es la única vía de acceso al
-                    dibujo para quien no ve, así que describe el objeto. */}
-                {current.image && (
-                  <img
-                    id={IMAGE_ID}
-                    src={current.image.src}
-                    alt={current.image.alt}
-                    width={224}
-                    height={224}
-                    decoding="async"
-                    className="w-56 h-56 max-w-full object-cover mx-auto mb-4 rounded-2xl border-2 border-slate-200 bg-white shadow-sm"
-                  />
-                )}
+                {/* Imagen del ejercicio: una foto de Unsplash, con el dibujo
+                    propio como respaldo. El alt acompaña a la que se pinte y es
+                    la única vía de acceso a la imagen para quien no ve. */}
+                {current.image && <ExerciseImage id={IMAGE_ID} image={current.image} />}
 
                 {/* Question */}
                 {current.question && (
