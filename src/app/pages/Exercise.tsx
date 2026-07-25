@@ -1151,9 +1151,10 @@ export function Exercise() {
                     id={IMAGE_ID}
                     src={current.image.src}
                     alt={current.image.alt}
-                    width={176}
-                    height={176}
-                    className="w-44 h-44 mx-auto mb-4 rounded-2xl border-2 border-slate-200 bg-white shadow-sm"
+                    width={224}
+                    height={224}
+                    decoding="async"
+                    className="w-56 h-56 max-w-full object-cover mx-auto mb-4 rounded-2xl border-2 border-slate-200 bg-white shadow-sm"
                   />
                 )}
 
