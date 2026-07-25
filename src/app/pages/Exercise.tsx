@@ -45,6 +45,86 @@ const TYPE_ICONS: Record<ExerciseType, string> = {
   'speaking': '🎤',
 };
 
+// Texto que se añade al nombre de cada grupo de botones para que quien no ve la
+// pantalla sepa que puede moverse con las flechas.
+const ARROW_HINT = 'Usa las flechas para moverte entre las opciones y Enter para elegir';
+
+// ─────────────────────────────────────────────
+// Navegación con flechas dentro de un grupo de botones (roving tabindex).
+//
+// Antes cada opción era una parada de tabulador y, si te pasabas una palabra,
+// había que recorrer toda la página para volver a ella. Ahora el grupo entero
+// ocupa UNA parada: dentro se circula con ←/→/↑/↓ (con vuelta al principio) e
+// Inicio/Fin, y Tab sale del grupo. Es el patrón de las prácticas ARIA para
+// widgets compuestos.
+//
+// El tabindex se ajusta sobre el DOM tras cada render porque el conjunto de
+// botones cambia (palabras que pasan del banco a la respuesta y viceversa).
+// ─────────────────────────────────────────────
+function useArrowNavigation() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activeIndexRef = useRef(0);
+
+  const getButtons = () =>
+    Array.from(containerRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? []).filter(b => !b.disabled);
+
+  const applyTabIndex = (buttons: HTMLButtonElement[], activeIndex: number) => {
+    buttons.forEach((button, i) => { button.tabIndex = i === activeIndex ? 0 : -1; });
+  };
+
+  useEffect(() => {
+    const buttons = getButtons();
+    if (buttons.length === 0) return;
+    activeIndexRef.current = Math.min(activeIndexRef.current, buttons.length - 1);
+    applyTabIndex(buttons, activeIndexRef.current);
+  });
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const buttons = getButtons();
+    if (buttons.length === 0) return;
+    const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (currentIndex === -1) return;
+
+    let nextIndex: number;
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        nextIndex = (currentIndex + 1) % buttons.length;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = buttons.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    activeIndexRef.current = nextIndex;
+    applyTabIndex(buttons, nextIndex);
+    buttons[nextIndex].focus();
+  };
+
+  // Al llegar al grupo con el ratón, con el cursor del lector o por foco
+  // programado, la parada de tabulador pasa a ser el botón donde estás.
+  const handleFocus = (event: React.FocusEvent) => {
+    const target = event.target;
+    if (!(target instanceof HTMLButtonElement)) return;
+    const buttons = getButtons();
+    const index = buttons.indexOf(target);
+    if (index === -1) return;
+    activeIndexRef.current = index;
+    applyTabIndex(buttons, index);
+  };
+
+  return { containerRef, groupProps: { onKeyDown: handleKeyDown, onFocus: handleFocus } };
+}
+
 // ─────────────────────────────────────────────
 // Answer normalisation
 // ─────────────────────────────────────────────
@@ -90,6 +170,7 @@ function ChoiceOptions({
 }>) {
   const [selected, setSelected] = useState<string | null>(null);
   const options = exercise.options ?? [];
+  const { containerRef, groupProps } = useArrowNavigation();
 
   const pick = (opt: string) => {
     if (selected) return;
@@ -98,7 +179,13 @@ function ChoiceOptions({
   };
 
   return (
-    <div className="space-y-3" role="group" aria-label="Opciones de respuesta">
+    <div
+      ref={containerRef}
+      {...groupProps}
+      className="space-y-3"
+      role="group"
+      aria-label={`Opciones de respuesta. ${ARROW_HINT}`}
+    >
       {options.map((opt, i) => {
         const isChosenRight = selected === opt && opt === exercise.correctAnswer;
         const isChosenWrong = selected === opt && opt !== exercise.correctAnswer;
@@ -165,6 +252,7 @@ function FillBlank({
 }>) {
   const [chosen, setChosen] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const { containerRef, groupProps } = useArrowNavigation();
 
   const pick = (word: string) => {
     if (submitted) return;
@@ -194,34 +282,44 @@ function FillBlank({
 
   return (
     <div className="space-y-5">
-      {/* Versión hablada de la oración: es a la vez la descripción de cada
-          palabra del banco (aria-describedby) y una región viva, así que al
-          elegir una palabra se anuncia cómo queda la oración completa. */}
-      <p id={SENTENCE_ID} className="sr-only" role="status" aria-live="polite">
-        Oración: <span lang="en">{parts[0]}</span>
-        {chosen ? <span lang="en">{chosen}</span> : <span>espacio en blanco</span>}
-        <span lang="en">{parts[1]}</span>
-      </p>
-
-      {/* Oración visible (duplicado visual de la anterior) */}
-      <div
+      {/* La oración es UN SOLO elemento visible y legible: nada de una copia
+          visual con aria-hidden y otra copia sr-only. Cualquier lector de
+          pantalla (o lector simple que solo recorra el texto visible) la
+          encuentra al leer la página. Además es región viva, así que al elegir
+          una palabra se anuncia cómo queda la oración completa, y es la
+          descripción de cada botón del banco (aria-describedby). */}
+      {/* tabIndex={0}: quien navega solo con Tab nunca llega al texto que no es
+          un control, así que la oración es además una parada de tabulador
+          justo antes de las palabras. */}
+      <p
+        id={SENTENCE_ID}
+        role="status"
+        aria-live="polite"
+        tabIndex={0}
         className="bg-slate-50 rounded-2xl p-4 text-center"
-        lang="en"
-        aria-hidden="true"
         style={{ fontSize: '1rem', lineHeight: 1.6, color: '#1e293b', fontWeight: 500 }}
       >
-        {parts[0]}
+        <span className="sr-only">Oración: </span>
+        <span lang="en">{parts[0]}</span>
         <span
           className={`inline-block min-w-[80px] px-3 py-0.5 mx-1 rounded-lg border-2 transition-colors ${blankClass}`}
           style={{ fontWeight: 600 }}
         >
-          {chosen ?? '___'}
+          {chosen
+            ? <span lang="en">{chosen}</span>
+            : <><span aria-hidden="true">___</span><span className="sr-only">espacio en blanco</span></>}
         </span>
-        {parts[1]}
-      </div>
+        <span lang="en">{parts[1]}</span>
+      </p>
 
       {/* Word bank */}
-      <div className="flex flex-wrap gap-2 justify-center" role="group" aria-label="Palabras para completar la oración">
+      <div
+        ref={containerRef}
+        {...groupProps}
+        className="flex flex-wrap gap-2 justify-center"
+        role="group"
+        aria-label={`Palabras para completar la oración. ${ARROW_HINT}`}
+      >
         {wordBank.map((word, i) => {
           const isChosenWord = chosen === word;
           let wordClass: string;
@@ -285,12 +383,17 @@ function WordOrder({
   const [selected, setSelected] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
+  // Dos grupos navegables con flechas: la respuesta en construcción y el banco
+  // de palabras. Cada uno es una sola parada de tabulador.
+  const answerNav = useArrowNavigation();
+  const bankNav = useArrowNavigation();
+  const answerRef = answerNav.containerRef;
+  const bankRef = bankNav.containerRef;
+
   // Al elegir o quitar una palabra su botón desaparece del DOM y el foco se
   // caería al <body>: quien navega con teclado o lector de pantalla tendría que
   // recorrer la página otra vez. Lo movemos al botón que ocupa ese hueco
   // (WCAG 2.4.3, orden del foco).
-  const bankRef = useRef<HTMLDivElement>(null);
-  const answerRef = useRef<HTMLDivElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const [focusTarget, setFocusTarget] = useState<{ zone: 'bank' | 'answer'; index: number } | null>(null);
 
@@ -352,20 +455,21 @@ function WordOrder({
           para que quien no ve la pantalla sepa siempre cómo va la oración. */}
       <p id={ANSWER_ID} className="sr-only" role="status" aria-live="polite">
         {selected.length === 0
-          ? 'Tu respuesta está vacía. Elige palabras del banco de palabras.'
+          ? 'Tu respuesta está vacía.'
           : <>Tu respuesta: <span lang="en">{userAnswer}</span></>}
       </p>
 
       {/* Answer area */}
       <div
         ref={answerRef}
+        {...answerNav.groupProps}
         className={`min-h-[3.5rem] bg-white rounded-2xl border-2 p-3 flex flex-wrap gap-2 transition-colors ${answerAreaClass}`}
         role="group"
-        aria-label="Tu respuesta. Activa una palabra para quitarla"
+        aria-label={`Tu respuesta. Activa una palabra para quitarla. ${ARROW_HINT}`}
       >
         {selected.length === 0 && (
-          <span className="text-slate-500 self-center mx-auto" aria-hidden="true" style={{ fontSize: '0.85rem' }}>
-            Toca las palabras para ordenarlas
+          <span className="text-slate-500 self-center mx-auto" style={{ fontSize: '0.85rem' }}>
+            Elige palabras del banco de abajo para ordenarlas
           </span>
         )}
         {selected.map((word, i) => {
@@ -394,7 +498,13 @@ function WordOrder({
       <div className="h-px bg-slate-100" aria-hidden="true" />
 
       {/* Word bank */}
-      <div ref={bankRef} className="flex flex-wrap gap-2" role="group" aria-label="Banco de palabras disponibles">
+      <div
+        ref={bankRef}
+        {...bankNav.groupProps}
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label={`Banco de palabras disponibles. ${ARROW_HINT}`}
+      >
         {available.map((word, i) => (
           <button
             key={`${word}-${i}`}
@@ -456,14 +566,25 @@ function Translate({
 
   return (
     <div className="space-y-4">
-      {/* El campo toma su nombre de la instrucción + la frase a traducir, así
-          que al llegar a él se vuelve a leer la pregunta completa. */}
+      {/* Etiqueta VISIBLE asociada al campo (antes solo existía un aria-label):
+          se lee al recorrer la página, es un objetivo de clic y deja claro que
+          lo siguiente en el orden de tabulación es el cuadro de escritura. El
+          nombre del campo incluye además la frase a traducir. */}
+      <label
+        htmlFor="translate-answer"
+        id="translate-answer-label"
+        className="block text-slate-700"
+        style={{ fontWeight: 600, fontSize: '0.9rem' }}
+      >
+        Escribe aquí tu respuesta en inglés:
+      </label>
       <textarea
+        id="translate-answer"
         value={value}
         onChange={e => !submitted && setValue(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
         placeholder="Escribe tu respuesta en inglés..."
-        aria-labelledby={`${INSTRUCTION_ID} ${QUESTION_ID}`}
+        aria-labelledby={`translate-answer-label ${QUESTION_ID}`}
         lang="en"
         disabled={submitted}
         className={`w-full rounded-2xl border-2 p-4 resize-none outline-none transition-colors placeholder:text-slate-500 ${textareaClass}`}

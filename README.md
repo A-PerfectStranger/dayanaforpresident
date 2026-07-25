@@ -41,6 +41,13 @@
 
   1. **La pregunta se lee siempre junto a la respuesta.** Cada ejercicio tiene un grupo de enunciado que recibe el foco al abrirse (tipo de ejercicio, número, instrucción, imagen y pregunta se leen de una vez), y además cada control de respuesta apunta con `aria-describedby` a la pregunta y a la imagen. Así, al recorrer las opciones con el tabulador, el lector de pantalla no dice solo «Good morning», sino «Good morning, opción 1 de 4, ¿Cómo se dice "Buenos días" en inglés?». El botón «Repetir el enunciado» de la barra superior vuelve a leerlo cuando haga falta.
   2. **Ninguna tarjeta informativa queda muda.** Las tarjetas de datos (bienvenida, racha, tiempo, lecciones, resultados) concentran su información en un nombre accesible y son alcanzables con el tabulador, de modo que aparecen tanto al leer la página como al navegar con teclado.
+  3. **Nada importante vive solo en texto oculto.** La oración de los ejercicios de completar es un único elemento visible y legible (antes había una copia visual con `aria-hidden` y otra `sr-only`, y algunos lectores no llegaban a ninguna). Cuando el contenido no es un control —como esa oración— se hace además alcanzable con el tabulador.
+
+  ### Teclado en los ejercicios
+
+  Cada grupo de opciones (respuestas, banco de palabras, palabras ya colocadas) es **una sola parada de tabulador**: dentro se circula con **←/→/↑/↓**, con vuelta al principio, y con **Inicio/Fin** se salta a la primera o la última. Antes cada opción era una parada distinta y, si te pasabas una palabra, había que recorrer toda la página para volver a ella. El nombre de cada grupo lo anuncia («Usa las flechas para moverte entre las opciones y Enter para elegir»).
+
+  Recorrido típico de un ejercicio, solo con teclado: enunciado (recibe el foco y se lee entero) → Tab → respuestas (flechas + Enter) → panel de resultado (recibe el foco y se lee entero) → Tab → «Continuar». En los ejercicios de escritura, el cuadro de texto es la **primera** parada tras el enunciado y tiene etiqueta visible asociada.
 
   La interfaz aplica los cuatro principios POUR de las Pautas de Accesibilidad para el Contenido Web 2.2:
 
@@ -53,6 +60,7 @@
 
   ### Operable
   - Toda la interfaz es manejable por teclado: las tarjetas interactivas son botones reales y los modales atrapan el foco, dejan inerte el fondo y se cierran con `Escape` (2.1.1, 2.1.2).
+  - Los grupos de opciones usan *roving tabindex*: una parada de tabulador por grupo y flechas para moverse dentro (2.4.3, 2.1.1).
   - Enlaces «saltar al contenido» en el layout y en la pantalla de ejercicios (2.4.1).
   - El foco nunca se pierde: se mueve al enunciado al cambiar de ejercicio, al panel de resultado al responder, al resumen al terminar la lección y a la palabra vecina cuando un botón desaparece al ordenar palabras (2.4.3).
   - Foco visible con contorno de 3 px (2.4.7, 2.4.11) y objetivos táctiles de al menos 24×24 px (2.5.8, nuevo en WCAG 2.2).
