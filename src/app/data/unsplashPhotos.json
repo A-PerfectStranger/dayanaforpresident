@@ -1,4 +1,103 @@
 {
   "$schema": "./unsplashPhotos.schema.json",
-  "photos": {}
+  "photos": {
+    "dog": {
+      "id": "photo-1769117086394-15a1e67b53e9",
+      "alt": "Fotografía de un perro golden retriever en primer plano, con el pelaje dorado y ondulado, los ojos marrones, el hocico oscuro y la boca abierta con la lengua rosa fuera, sobre un fondo verde desenfocado",
+      "photographer": "Helena Lopes",
+      "photographerUrl": "https://unsplash.com/@helenalopesph",
+      "photoUrl": "https://unsplash.com/photos/a-close-up-of-a-golden-retrievers-face-outdoors-wANqTQHVN7o"
+    },
+    "cat": {
+      "id": "photo-1748347269010-fb75a6e9bbfa",
+      "alt": "Fotografía de un gato naranja atigrado sentado sobre una piedra, de perfil y con la cabeza vuelta hacia la cámara, con los ojos verdes, los bigotes largos y blancos y una mancha blanca en el pecho, junto a un seto verde",
+      "photographer": "RASHNI PARICHHA",
+      "photographerUrl": "https://unsplash.com/@parichha_rashni",
+      "photoUrl": "https://unsplash.com/photos/orange-tabby-cat-sits-and-stares-at-the-camera-NLpkgUegg_4"
+    },
+    "house": {
+      "id": "photo-1710170951982-02caa8fd3b4a",
+      "alt": "Fotografía de una casa de dos plantas con las paredes blancas, el tejado oscuro a dos aguas y un balcón de madera con flores rojas, rodeada de pinos y con una valla blanca de madera delante",
+      "photographer": "khoi nguyen",
+      "photographerUrl": "https://unsplash.com/@khoinguyennguyen",
+      "photoUrl": "https://unsplash.com/photos/a-white-house-surrounded-by-trees-on-a-sunny-day-39VwTfL-y_A"
+    },
+    "book": {
+      "id": "photo-1544947950-fa07a98d237f",
+      "alt": "Fotografía de un libro cerrado de tapa dura negra apoyado sobre otro libro de tapa clara, encima de una mesa de madera; en la portada se leen el título y el nombre de la autora junto a dos abejas dibujadas",
+      "photographer": "Sincerely Media",
+      "photographerUrl": "https://unsplash.com/@sincerelymedia",
+      "photoUrl": "https://unsplash.com/photos/CXYPfveiuis"
+    },
+    "sun": {
+      "id": "photo-1639600861808-839928aba6ca",
+      "alt": "Fotografía del sol: un disco redondo de luz amarilla intensa en mitad de un cielo anaranjado y neblinoso, sin nubes con forma definida ni ningún otro astro",
+      "photographer": "Marek Piwnicki",
+      "photographerUrl": "https://unsplash.com/@marekpiwnicki",
+      "photoUrl": "https://unsplash.com/photos/the-sun-is-shining-brightly-in-the-sky-NsDuLjxre-s"
+    },
+    "tree": {
+      "id": "photo-1611690398208-18158228b6ba",
+      "alt": "Fotografía de un árbol solitario en mitad de un prado verde, con el tronco fino y recto y una copa ancha y frondosa de hojas verdes, bajo un cielo azul con algunas nubes blancas",
+      "photographer": "Eduardo Buscariolli",
+      "photographerUrl": "https://unsplash.com/@ebuscariolli",
+      "photoUrl": "https://unsplash.com/photos/green-tree-on-green-grass-field-under-white-clouds-and-blue-sky-during-daytime-9rGmxYrN-Jw"
+    },
+    "apple": {
+      "id": "photo-1570913149827-d2ac84ab3f9a",
+      "alt": "Fotografía de una mano que sostiene una manzana roja y brillante, con el rabito y una hoja verde todavía unidos a la parte de arriba, sobre un fondo oscuro desenfocado",
+      "photographer": "Priscilla Du Preez 🇨🇦",
+      "photographerUrl": "https://unsplash.com/@priscilladupreez",
+      "photoUrl": "https://unsplash.com/photos/CoqJGsFVJtM"
+    },
+    "bread": {
+      "id": "photo-1549413468-cd78edb7e75c",
+      "alt": "Fotografía de varias hogazas de pan redondas recién horneadas, con la corteza dorada y agrietada y espolvoreada de harina blanca, apoyadas sobre un paño de arpillera",
+      "photographer": "Maria Orlova",
+      "photographerUrl": "https://unsplash.com/@orlovamaria",
+      "photoUrl": "https://unsplash.com/photos/kU7TkW9FIJY"
+    },
+    "car": {
+      "id": "photo-1514214089800-6f1f3ae37854",
+      "alt": "Fotografía de un coche pequeño y antiguo de color rojo, aparcado de perfil junto a la acera, con sus dos ruedas, las ventanillas y el techo redondeado a la vista, delante de un edificio de fachada beige",
+      "photographer": "Sean Whelan",
+      "photographerUrl": "https://unsplash.com/@sswhelan",
+      "photoUrl": "https://unsplash.com/photos/red-volkswagen-beetle-hatchback-on-road-VcVItFUI6g0"
+    },
+    "bus": {
+      "id": "photo-1721918169501-ec4787425fb2",
+      "alt": "Fotografía de un autobús urbano de dos pisos, blanco con franjas azules y moradas, visto de perfil y parado en la calzada, con dos filas de ventanillas y un anuncio grande en el lateral",
+      "photographer": "Joseph Mama",
+      "photographerUrl": "https://unsplash.com/@bradfordboy23",
+      "photoUrl": "https://unsplash.com/photos/7S_swElKl98"
+    },
+    "bicycle": {
+      "id": "photo-1618762044398-ec1e7e048bbd",
+      "alt": "Fotografía de una bicicleta de montaña negra y roja parada sobre el asfalto, con las dos ruedas de radios y neumático grueso, el cuadro, el sillín y el manillar a la vista, delante de una nave de chapa blanca",
+      "photographer": "streetsh",
+      "photographerUrl": "https://unsplash.com/@streetsh",
+      "photoUrl": "https://unsplash.com/photos/black-and-orange-road-bike-parked-beside-white-wall-vZAk_n9Plfc"
+    },
+    "train": {
+      "id": "photo-1601999007938-f584b47324ac",
+      "alt": "Fotografía de un tren con la locomotora amarilla y varios vagones oscuros detrás, circulando sobre los raíles por un viaducto metálico, entre árboles de colores otoñales",
+      "photographer": "Martin Sanchez",
+      "photographerUrl": "https://unsplash.com/@zekedrone",
+      "photoUrl": "https://unsplash.com/photos/pfkzBUh4KyA"
+    },
+    "airplane": {
+      "id": "photo-1606768666853-403c90a981ad",
+      "alt": "Fotografía de un avión de pasajeros blanco volando por el cielo, visto desde abajo, con las dos alas extendidas, los motores colgados bajo las alas y la cola, entre nubes blancas y cielo azul",
+      "photographer": "Philip Myrtorp",
+      "photographerUrl": "https://unsplash.com/@philipmyr",
+      "photoUrl": "https://unsplash.com/photos/iiqpxCg2GD4"
+    },
+    "boat": {
+      "id": "photo-1616871154134-50cae6a081dd",
+      "alt": "Fotografía de una barca de madera marrón amarrada en agua tranquila, vista de cerca desde la proa, con los bancos de remar en el interior y el casco reflejado en la superficie del agua",
+      "photographer": "Frederik Löwer",
+      "photographerUrl": "https://unsplash.com/@frederikloewer",
+      "photoUrl": "https://unsplash.com/photos/qLdFdDNE69w"
+    }
+  }
 }
