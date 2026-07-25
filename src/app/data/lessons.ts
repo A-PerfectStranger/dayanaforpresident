@@ -1,5 +1,15 @@
-export type ExerciseType = 'multiple-choice' | 'fill-blank' | 'word-order' | 'translate' | 'speaking';
+export type ExerciseType = 'multiple-choice' | 'image-choice' | 'fill-blank' | 'word-order' | 'translate' | 'speaking';
 export type Level = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+
+/**
+ * Imagen de un ejercicio. `alt` es obligatorio y es la ÚNICA vía por la que una
+ * persona ciega recibe el contenido del dibujo, así que describe el objeto en
+ * español con el mismo detalle con el que se ve (WCAG 1.1.1).
+ */
+export interface ExerciseImage {
+  src: string;
+  alt: string;
+}
 
 export interface ExerciseItem {
   id: string;
@@ -8,7 +18,8 @@ export interface ExerciseItem {
   question?: string;
   sentence?: string;        // for fill-blank: includes [BLANK]
   wordBank?: string[];      // for fill-blank / word-order
-  options?: string[];       // for multiple-choice
+  options?: string[];       // for multiple-choice / image-choice
+  image?: ExerciseImage;    // for image-choice
   correctAnswer: string;
   acceptedAnswers?: string[];
   explanation: string;
@@ -277,6 +288,96 @@ export const units: Unit[] = [
           },
         ],
       },
+      {
+        id: 'lesson-images-1',
+        title: 'Imágenes: Animales y Casa',
+        subtitle: 'Mira la imagen y elige cómo se dice en inglés',
+        level: 'A1',
+        topic: 'Vocabulario',
+        emoji: '🖼️',
+        colorClass: 'bg-teal-500',
+        xpReward: 60,
+        exercises: [
+          {
+            id: 'ex-img1-1',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el animal de la imagen?',
+            image: {
+              src: '/images/exercises/dog.svg',
+              alt: 'Dibujo de un perro marrón con las orejas caídas, visto de frente',
+            },
+            options: ['dog', 'cat', 'bird', 'horse'],
+            correctAnswer: 'dog',
+            explanation: '"Dog" = perro. "Cat" = gato, "Bird" = pájaro, "Horse" = caballo.',
+          },
+          {
+            id: 'ex-img1-2',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el animal de la imagen?',
+            image: {
+              src: '/images/exercises/cat.svg',
+              alt: 'Dibujo de un gato naranja con orejas puntiagudas y bigotes',
+            },
+            options: ['cat', 'dog', 'mouse', 'rabbit'],
+            correctAnswer: 'cat',
+            explanation: '"Cat" = gato. "Mouse" = ratón, "Rabbit" = conejo. El plural irregular de "mouse" es "mice".',
+          },
+          {
+            id: 'ex-img1-3',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el objeto de la imagen?',
+            image: {
+              src: '/images/exercises/house.svg',
+              alt: 'Dibujo de una casa amarilla con tejado rojo, una puerta y dos ventanas',
+            },
+            options: ['house', 'school', 'shop', 'church'],
+            correctAnswer: 'house',
+            explanation: '"House" = casa (el edificio). "Home" = hogar. "School" = escuela, "Shop" = tienda.',
+          },
+          {
+            id: 'ex-img1-4',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el objeto de la imagen?',
+            image: {
+              src: '/images/exercises/book.svg',
+              alt: 'Dibujo de un libro abierto con dos páginas y líneas de texto',
+            },
+            options: ['book', 'notebook', 'newspaper', 'letter'],
+            correctAnswer: 'book',
+            explanation: '"Book" = libro. "Notebook" = cuaderno, "Newspaper" = periódico, "Letter" = carta.',
+          },
+          {
+            id: 'ex-img1-5',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés lo que aparece en la imagen?',
+            image: {
+              src: '/images/exercises/sun.svg',
+              alt: 'Dibujo del sol, un círculo amarillo con rayos alrededor',
+            },
+            options: ['sun', 'moon', 'star', 'cloud'],
+            correctAnswer: 'sun',
+            explanation: '"Sun" = sol. "Moon" = luna, "Star" = estrella, "Cloud" = nube. Se dice "It\'s sunny" = está soleado.',
+          },
+          {
+            id: 'ex-img1-6',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés lo que aparece en la imagen?',
+            image: {
+              src: '/images/exercises/tree.svg',
+              alt: 'Dibujo de un árbol con tronco marrón y copa verde sobre la hierba',
+            },
+            options: ['tree', 'flower', 'grass', 'leaf'],
+            correctAnswer: 'tree',
+            explanation: '"Tree" = árbol. "Flower" = flor, "Grass" = hierba, "Leaf" = hoja (plural irregular: "leaves").',
+          },
+        ],
+      },
     ],
   },
   {
@@ -453,6 +554,32 @@ export const units: Unit[] = [
             correctAnswer: 'I eat vegetables every day',
             explanation: '"I eat vegetables every day." (Como verduras cada día.) "Vegetables" = verduras/vegetales.',
           },
+          {
+            id: 'ex-7-6',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés la fruta de la imagen?',
+            image: {
+              src: '/images/exercises/apple.svg',
+              alt: 'Dibujo de una manzana roja con una hoja verde y el rabito marrón',
+            },
+            options: ['apple', 'tomato', 'cherry', 'strawberry'],
+            correctAnswer: 'apple',
+            explanation: '"Apple" = manzana. "Tomato" = tomate, "Cherry" = cereza, "Strawberry" = fresa.',
+          },
+          {
+            id: 'ex-7-7',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el alimento de la imagen?',
+            image: {
+              src: '/images/exercises/bread.svg',
+              alt: 'Dibujo de una barra de pan dorada con tres cortes en la corteza',
+            },
+            options: ['bread', 'cake', 'cheese', 'rice'],
+            correctAnswer: 'bread',
+            explanation: '"Bread" = pan. Es incontable: se dice "some bread" o "a loaf of bread", nunca "a bread".',
+          },
         ],
       },
       {
@@ -508,6 +635,96 @@ export const units: Unit[] = [
             wordBank: ['you', 'How', 'old', 'are', '?'],
             correctAnswer: 'How old are you?',
             explanation: '"How old are you?" = ¿Cuántos años tienes? "How" + adjetivo para preguntar sobre cantidad o manera.',
+          },
+        ],
+      },
+      {
+        id: 'lesson-images-2',
+        title: 'Imágenes: Transporte',
+        subtitle: 'Mira la imagen y elige cómo se dice en inglés',
+        level: 'A2',
+        topic: 'Vocabulario',
+        emoji: '🚌',
+        colorClass: 'bg-amber-500',
+        xpReward: 70,
+        exercises: [
+          {
+            id: 'ex-img2-1',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el vehículo de la imagen?',
+            image: {
+              src: '/images/exercises/car.svg',
+              alt: 'Dibujo de un coche rojo de perfil, con dos ventanillas y dos ruedas',
+            },
+            options: ['car', 'bus', 'truck', 'motorbike'],
+            correctAnswer: 'car',
+            explanation: '"Car" = coche/carro. "Truck" = camión, "Motorbike" = moto. Se viaja "by car" (en coche).',
+          },
+          {
+            id: 'ex-img2-2',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el vehículo de la imagen?',
+            image: {
+              src: '/images/exercises/bus.svg',
+              alt: 'Dibujo de un autobús naranja de perfil, con tres ventanillas grandes',
+            },
+            options: ['bus', 'van', 'taxi', 'train'],
+            correctAnswer: 'bus',
+            explanation: '"Bus" = autobús. "Van" = furgoneta, "Taxi" = taxi. "I take the bus" = cojo el autobús.',
+          },
+          {
+            id: 'ex-img2-3',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el vehículo de la imagen?',
+            image: {
+              src: '/images/exercises/bicycle.svg',
+              alt: 'Dibujo de una bicicleta azul de perfil, con dos ruedas y manillar',
+            },
+            options: ['bicycle', 'motorbike', 'scooter', 'wheelchair'],
+            correctAnswer: 'bicycle',
+            explanation: '"Bicycle" (o "bike") = bicicleta. "Scooter" = patinete, "Motorbike" = motocicleta.',
+          },
+          {
+            id: 'ex-img2-4',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el vehículo de la imagen?',
+            image: {
+              src: '/images/exercises/train.svg',
+              alt: 'Dibujo de un tren azul sobre las vías, con chimenea y tres ruedas',
+            },
+            options: ['train', 'bus', 'plane', 'boat'],
+            correctAnswer: 'train',
+            explanation: '"Train" = tren. Se coge "at the station" (en la estación) y se viaja "by train".',
+          },
+          {
+            id: 'ex-img2-5',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el vehículo de la imagen?',
+            image: {
+              src: '/images/exercises/airplane.svg',
+              alt: 'Dibujo de un avión azul volando, visto desde un lado',
+            },
+            options: ['plane', 'helicopter', 'rocket', 'bird'],
+            correctAnswer: 'plane',
+            explanation: '"Plane" (o "airplane" / "aeroplane") = avión. El aeropuerto es "airport" y el vuelo, "flight".',
+          },
+          {
+            id: 'ex-img2-6',
+            type: 'image-choice',
+            instruction: 'Observa la imagen y elige cómo se dice en inglés',
+            question: '¿Cómo se dice en inglés el vehículo de la imagen?',
+            image: {
+              src: '/images/exercises/boat.svg',
+              alt: 'Dibujo de un barco de vela sobre el agua, con una vela blanca y otra roja',
+            },
+            options: ['boat', 'car', 'plane', 'bridge'],
+            correctAnswer: 'boat',
+            explanation: '"Boat" = barco/barca. Un barco grande es "ship". "Bridge" = puente.',
           },
         ],
       },

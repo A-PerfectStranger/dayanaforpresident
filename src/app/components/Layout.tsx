@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router';
 import { Home, BookOpen, Dumbbell, BarChart2, Settings, Zap, User } from 'lucide-react';
 import { useApp, getLevel, getXpProgress } from '../context/AppContext';
 
@@ -14,8 +14,13 @@ const navItems = [
 export function Layout() {
   const { state } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const level = getLevel(state.user.xp);
   const xpInfo = getXpProgress(state.user.xp);
+  // Cambiar de pestaña no mueve el foco ni recarga la página, así que el lector
+  // de pantalla no diría nada: se anuncia la nueva pantalla en una región viva
+  // (WCAG 4.1.3), sin robar el foco de la barra de navegación.
+  const [routeAnnouncement, setRouteAnnouncement] = useState('');
 
   useEffect(() => {
     if (!state.onboardingCompleted) {
@@ -23,9 +28,18 @@ export function Layout() {
     }
   }, [state.onboardingCompleted, navigate]);
 
+  useEffect(() => {
+    // Las páginas hijas fijan document.title en sus propios efectos, que se
+    // ejecutan antes que este por ser componentes más internos.
+    setRouteAnnouncement(document.title.replace(' · LinguaFlow', ''));
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <a href="#main-content" className="skip-link">Saltar al contenido principal</a>
+      <p role="status" aria-live="polite" className="sr-only">
+        {routeAnnouncement ? `Pantalla: ${routeAnnouncement}` : ''}
+      </p>
 
       {/* ── TOP HEADER ── */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-white shadow-sm">

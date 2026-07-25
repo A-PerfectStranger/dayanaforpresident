@@ -51,6 +51,7 @@ export function Practice() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             disabled={!pt.available}
+            aria-label={`${pt.title}. ${pt.description}${pt.available ? '' : ' No disponible: completa al menos una lección primero.'}`}
             className={`w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 ${pt.available ? 'hover:border-indigo-200 hover:shadow-md cursor-pointer' : 'bg-slate-50'} transition-all`}
             onClick={() => {
               if (!pt.available) return;
@@ -62,18 +63,18 @@ export function Practice() {
               }
             }}
           >
-            <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" aria-hidden="true">
+            <span className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" aria-hidden="true">
               {pt.icon}
-            </div>
-            <div className="flex-1">
-              <p className="text-slate-800" style={{ fontWeight: 600 }}>{pt.title}</p>
-              <p className="text-slate-600" style={{ fontSize: '0.78rem' }}>{pt.description}</p>
+            </span>
+            <span className="flex-1" aria-hidden="true">
+              <span className="text-slate-800 block" style={{ fontWeight: 600 }}>{pt.title}</span>
+              <span className="text-slate-600 block" style={{ fontSize: '0.78rem' }}>{pt.description}</span>
               {!pt.available && (
-                <p className="text-amber-700 mt-0.5" style={{ fontSize: '0.72rem', fontWeight: 600 }}>
+                <span className="text-amber-700 mt-0.5 block" style={{ fontSize: '0.72rem', fontWeight: 600 }}>
                   Completa al menos una lección primero
-                </p>
+                </span>
               )}
-            </div>
+            </span>
             <ChevronRight className="w-4 h-4 text-slate-400" aria-hidden="true" />
           </motion.button>
         ))}
@@ -89,6 +90,9 @@ export function Practice() {
             {unlocked.map((lesson, i) => {
               const progress = state.lessonProgress[lesson.id];
               const isCompleted = progress?.completed;
+              const statusText = isCompleted
+                ? `Completada con ${progress?.stars ?? 0} de 3 estrellas`
+                : 'Sin completar';
 
               return (
                 <motion.button
@@ -97,26 +101,27 @@ export function Practice() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => navigate(`/exercise/${lesson.id}`)}
+                  aria-label={`Practicar la lección ${lesson.title}. Nivel ${lesson.level}, tema ${lesson.topic}. ${statusText}`}
                   className="w-full bg-white rounded-xl p-3.5 shadow-sm border border-slate-100 flex items-center gap-3 hover:border-indigo-200 hover:shadow-md transition-all text-left"
                 >
-                  <div className={`w-10 h-10 ${lesson.colorClass} rounded-xl flex items-center justify-center text-lg flex-shrink-0`} aria-hidden="true">
+                  <span className={`w-10 h-10 ${lesson.colorClass} rounded-xl flex items-center justify-center text-lg flex-shrink-0`} aria-hidden="true">
                     {lesson.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-slate-800 truncate" style={{ fontWeight: 600, fontSize: '0.875rem' }}>{lesson.title}</p>
-                    <p className="text-slate-600" style={{ fontSize: '0.72rem' }}>{lesson.level} · {lesson.topic}</p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  </span>
+                  <span className="flex-1 min-w-0" aria-hidden="true">
+                    <span className="text-slate-800 truncate block" style={{ fontWeight: 600, fontSize: '0.875rem' }}>{lesson.title}</span>
+                    <span className="text-slate-600 block" style={{ fontSize: '0.72rem' }}>{lesson.level} · {lesson.topic}</span>
+                  </span>
+                  <span className="flex items-center gap-1 flex-shrink-0" aria-hidden="true">
                     {isCompleted ? (
-                      <div className="flex" role="img" aria-label={`${progress?.stars ?? 0} de 3 estrellas`}>
-                        {[1,2,3].map(i => (
-                          <span key={`star-${i}`} aria-hidden="true" className={`text-xs ${i <= (progress?.stars ?? 0) ? 'text-amber-400' : 'text-slate-200'}`}>★</span>
+                      <span className="flex">
+                        {[1,2,3].map(starIdx => (
+                          <span key={`star-${starIdx}`} className={`text-xs ${starIdx <= (progress?.stars ?? 0) ? 'text-amber-400' : 'text-slate-200'}`}>★</span>
                         ))}
-                      </div>
+                      </span>
                     ) : (
-                      <Play className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" aria-hidden="true" />
+                      <Play className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
                     )}
-                  </div>
+                  </span>
                 </motion.button>
               );
             })}
@@ -126,7 +131,7 @@ export function Practice() {
 
       {unlocked.length === 0 && (
         <div className="text-center py-12 text-slate-600">
-          <Dumbbell className="w-10 h-10 mx-auto mb-3 opacity-40" />
+          <Dumbbell className="w-10 h-10 mx-auto mb-3 opacity-40" aria-hidden="true" />
           <p style={{ fontWeight: 500 }}>No hay lecciones disponibles</p>
           <p className="mt-1" style={{ fontSize: '0.82rem' }}>Completa la primera lección para desbloquear práctica</p>
         </div>

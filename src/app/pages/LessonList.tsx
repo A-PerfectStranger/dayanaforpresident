@@ -57,6 +57,19 @@ function LessonCard({
     ? 'border-slate-200 bg-slate-50'
     : 'border-slate-100 hover:border-indigo-200 hover:shadow-md';
 
+  // Estado leído por el lector de pantalla en una sola frase (lo visual va
+  // marcado con aria-hidden para no repetir "100% · +50 XP" troceado).
+  let spokenStatus: string;
+  if (completed) {
+    spokenStatus = `Completada con ${stars} de 3 estrellas, ${score} por ciento de aciertos y ${progress?.xpEarned ?? 0} XP ganados.`;
+  } else if (inProgress) {
+    spokenStatus = `En curso: ${Math.round(((progress?.exerciseIndex ?? 0) / lesson.exercises.length) * 100)} por ciento completado.`;
+  } else if (locked) {
+    spokenStatus = 'Bloqueada. Completa la lección anterior para desbloquearla.';
+  } else {
+    spokenStatus = `Disponible. ${lesson.exercises.length} ejercicios, ${lesson.xpReward} XP.`;
+  }
+
   let statusContent: React.ReactNode;
   if (completed) {
     statusContent = (
@@ -120,13 +133,18 @@ function LessonCard({
         )}
 
         <div className="p-4 flex items-center gap-3">
+          {/* Resumen hablado de la tarjeta */}
+          <p className="sr-only">
+            {lesson.title}. Nivel {lesson.level}, tema {lesson.topic}. {spokenStatus}
+          </p>
+
           {/* Emoji icon */}
           <div className={`w-12 h-12 ${locked ? 'bg-slate-200' : lesson.colorClass} rounded-2xl flex items-center justify-center text-xl flex-shrink-0 shadow-sm`} aria-hidden="true">
             {locked ? <Lock className="w-5 h-5 text-slate-500" /> : lesson.emoji}
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0" aria-hidden="true">
             <div className="flex items-center gap-2 mb-0.5">
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${LEVEL_COLORS[lesson.level]}`} style={{ fontWeight: 600, fontSize: '0.75rem' }}>
                 {lesson.level}
@@ -190,7 +208,7 @@ function LessonCard({
             )}
 
             {locked && (
-              <div className="w-8 h-8 flex items-center justify-center">
+              <div className="w-8 h-8 flex items-center justify-center" aria-hidden="true">
                 <Lock className="w-4 h-4 text-slate-300" />
               </div>
             )}
@@ -294,33 +312,34 @@ export function LessonList() {
       )}
 
       {/* Lessons grid */}
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="text-center py-12 text-slate-600">
-            <p className="text-3xl mb-3">🔍</p>
-            <p style={{ fontWeight: 500 }}>No se encontraron lecciones</p>
-            <button
-              onClick={() => { setLevelFilter('all'); setTopicFilter('all'); }}
-              className="mt-3 text-indigo-500 hover:text-indigo-700"
-              style={{ fontSize: '0.85rem', fontWeight: 500 }}
-            >
-              Limpiar filtros
-            </button>
-          </div>
-        ) : (
-          filtered.map((lesson, idx) => (
-            <LessonCard
-              key={lesson.id}
-              lesson={lesson}
-              idx={idx}
-              resetting={resetting}
-              onStartReset={setResetting}
-              onConfirmReset={handleReset}
-              onCancelReset={() => setResetting(null)}
-            />
-          ))
-        )}
-      </div>
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-slate-600">
+          <p className="text-3xl mb-3" aria-hidden="true">🔍</p>
+          <p style={{ fontWeight: 500 }}>No se encontraron lecciones</p>
+          <button
+            onClick={() => { setLevelFilter('all'); setTopicFilter('all'); }}
+            className="mt-3 text-indigo-500 hover:text-indigo-700"
+            style={{ fontSize: '0.85rem', fontWeight: 500 }}
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      ) : (
+        <ul className="space-y-3 list-none p-0 m-0">
+          {filtered.map((lesson, idx) => (
+            <li key={lesson.id}>
+              <LessonCard
+                lesson={lesson}
+                idx={idx}
+                resetting={resetting}
+                onStartReset={setResetting}
+                onConfirmReset={handleReset}
+                onCancelReset={() => setResetting(null)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
